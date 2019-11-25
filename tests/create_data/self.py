@@ -285,14 +285,23 @@ for i in range(9):
     elif ab // 10 in [2, ]:
         recazm = 90
 
+    c = 299792458              # Speed of light m/s
+    mu_0 = 4e-7*np.pi          # Magn. permeability of free space [H/m]
+    epsilon_0 = 1./(mu_0*c*c)  # Elec. permittivity of free space [F/m]
+    if signal[i] is None:  # Frequency domain
+        sval = 2j*np.pi*freq
+    else:                  # Time domain
+        sval = freq
+    iwf = 2j*np.pi*freq*epsilon_0
+
     # Collect dict for halfspace
     hs[str(pab[i])] = {'off': off,
                        'angle': angle,
                        'zsrc': 100,
                        'zrec': rec[2],
-                       'etaH': np.atleast_2d(1/res),
-                       'etaV': np.atleast_2d(1/(res*aniso*aniso)),
-                       'freqtime': np.atleast_2d(freq),
+                       'etaH': np.atleast_2d(1/res + iwf),
+                       'etaV': np.atleast_2d(1/(res*aniso*aniso) + iwf),
+                       'freqtime': np.atleast_2d(sval),
                        'signal': signal[i],
                        'ab': ab,
                        'solution': 'dhs'}

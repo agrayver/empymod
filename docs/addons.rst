@@ -1,5 +1,5 @@
-Add-ons
-#######
+Add-on functions
+################
 
 .. automodule:: empymod.scripts
 
@@ -7,7 +7,4 @@ Add-ons
     :members:
 
 .. automodule:: empymod.scripts.tmtemod
-    :members:
-
-.. automodule:: empymod.scripts.printinfo
     :members:

@@ -3,7 +3,7 @@ r"""
 ====================================================
 
 The add-on fdesign can be used to design digital linear filters for the Hankel
-or Fourier transform, or for any linear transform ([Ghosh_1970]_). For this
+or Fourier transform, or for any linear transform ([Ghos70]_). For this
 included or provided theoretical transform pairs can be used. Alternatively,
 one can use the EM modeller empymod to use the responses to an arbitrary 1D
 model as numerical transform pair.
@@ -13,13 +13,13 @@ More information can be found in the following places:
 - The article about fdesign is in the repo
   https://github.com/empymod/article-fdesign
 - Example notebooks to design a filter can be found in the repo
-  https://github.com/empymod/example-notebooks
+  https://empymod.readthedocs.io/en/stable/examples
 
 This filter designing tool uses the direct matrix inversion method as described
-in [Kong_2007]_ and is based on scripts by [Key_2012]_. The whole project of
+in [Kong07]_ and is based on scripts by [Key12]_. The whole project of
 ``fdesign`` started with the Matlab scripts from Kerry Key, which he used to
-design his filters for [Key_2009]_, [Key_2012]_. Fruitful discussions with
-Evert Slob and Kerry Key improved the add-on substantially.
+design his filters for [Key09]_, [Key12]_. Fruitful discussions with Evert Slob
+and Kerry Key improved the add-on substantially.
 
 Note that the use of empymod to create numerical transform pairs is, as of now,
 only implemented for the Hankel transform.
@@ -56,7 +56,7 @@ implemented transform pair ``j0_1``
 .. code-block:: python
 
    def j0_1(a=1):
-       '''Hankel transform pair J0_1 ([Anderson_1975]_).'''
+       '''Hankel transform pair J0_1 ([Ande75]_).'''
 
        def lhs(l):
            return l*np.exp(-a*l**2)
@@ -70,28 +70,28 @@ implemented transform pair ``j0_1``
 Implemented Hankel transforms
 -----------------------------
 
-- ``j0_1`` [Anderson_1975]_
+- ``j0_1`` [Ande75]_
 
   .. math::
 
       \int^\infty_0 l \exp\left(-al^2\right) J_0(lr) dl =
       \frac{\exp\left(\frac{-r^2}{4a}\right)}{2a}
 
-- ``j0_2`` [Anderson_1975]_
+- ``j0_2`` [Ande75]_
 
   .. math::
 
       \int^\infty_0 \exp\left(-al\right) J_0(lr) dl =
       \frac{1}{\sqrt{a^2+r^2}}
 
-- ``j0_3`` [Guptasarma_and_Singh_1997]_
+- ``j0_3`` [GuSi97]_
 
   .. math::
 
       \int^\infty_0 l\exp\left(-al\right) J_0(lr) dl =
       \frac{a}{(a^2 + r^2)^{3/2}}
 
-- ``j0_4`` [Chave_and_Cox_1982]_
+- ``j0_4`` [ChCo82]_
 
   .. math::
 
@@ -99,7 +99,7 @@ Implemented Hankel transforms
       J_0(lr) dl =
       \frac{\exp\left(-\gamma R\right)}{R}
 
-- ``j0_5`` [Chave_and_Cox_1982]_
+- ``j0_5`` [ChCo82]_
 
   .. math::
 
@@ -107,7 +107,7 @@ Implemented Hankel transforms
     J_0(lr) dl =
     \frac{ z_v (\gamma R + 1)}{R^3}\exp\left(-\gamma R\right)
 
-- ``j1_1`` [Anderson_1975]_
+- ``j1_1`` [Ande75]_
 
   .. math::
 
@@ -115,21 +115,21 @@ Implemented Hankel transforms
     \frac{r}{4a^2} \exp\left(-\frac{r^2}{4a}\right)
 
 
-- ``j1_2`` [Anderson_1975]_
+- ``j1_2`` [Ande75]_
 
   .. math::
 
     \int^\infty_0 \exp\left(-al\right) J_1(lr) dl =
     \frac{\sqrt{a^2+r^2}-a}{r\sqrt{a^2 + r^2}}
 
-- ``j1_3`` [Anderson_1975]_
+- ``j1_3`` [Ande75]_
 
   .. math::
 
     \int^\infty_0 l \exp\left(-al\right) J_1(lr) dl =
     \frac{r}{(a^2 + r^2)^{3/2}}
 
-- ``j1_4`` [Chave_and_Cox_1982]_
+- ``j1_4`` [ChCo82]_
 
   .. math::
 
@@ -137,7 +137,7 @@ Implemented Hankel transforms
     J_1(lr) dl =
     \frac{r(\gamma R+1)}{R^3}\exp\left(-\gamma R\right)
 
-- ``j1_5`` [Chave_and_Cox_1982]_
+- ``j1_5`` [ChCo82]_
 
   .. math::
 
@@ -157,42 +157,42 @@ Where
 Implemented Fourier transforms
 ------------------------------
 
-- ``sin_1`` [Anderson_1975]_
+- ``sin_1`` [Ande75]_
 
   .. math::
 
     \int^\infty_0 l\exp\left(-a^2l^2\right) \sin(lr) dl =
     \frac{\sqrt{\pi}r}{4a^3} \exp\left(-\frac{r^2}{4a^2}\right)
 
-- ``sin_2`` [Anderson_1975]_
+- ``sin_2`` [Ande75]_
 
   .. math::
 
     \int^\infty_0 \exp\left(-al\right) \sin(lr) dl =
     \frac{r}{a^2 + r^2}
 
-- ``sin_3`` [Anderson_1975]_
+- ``sin_3`` [Ande75]_
 
   .. math::
 
     \int^\infty_0 \frac{l}{a^2+l^2} \sin(lr) dl =
     \frac{\pi}{2} \exp\left(-ar\right)
 
-- ``cos_1`` [Anderson_1975]_
+- ``cos_1`` [Ande75]_
 
   .. math::
 
     \int^\infty_0 \exp\left(-a^2l^2\right) \cos(lr) dl =
     \frac{\sqrt{\pi}}{2a} \exp\left(-\frac{r^2}{4a^2}\right)
 
-- ``cos_2`` [Anderson_1975]_
+- ``cos_2`` [Ande75]_
 
   .. math::
 
     \int^\infty_0 \exp\left(-al\right) \cos(lr) dl =
     \frac{a}{a^2 + r^2}
 
-- ``cos_3`` [Anderson_1975]_
+- ``cos_3`` [Ande75]_
 
   .. math::
 
@@ -201,7 +201,7 @@ Implemented Fourier transforms
 
 
 """
-# Copyright 2017-2019 Dieter Werthmüller
+# Copyright 2017-2019 The empymod Developers.
 #
 # This file is part of empymod.
 #
@@ -209,7 +209,7 @@ Implemented Fourier transforms
 # use this file except in compliance with the License.  You may obtain a copy
 # of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -230,11 +230,11 @@ except ImportError:
     plt = False
     plt_msg = "* WARNING :: `matplotlib` is not installed, no figures shown."
 
-from ..filters import DigitalFilter
-from ..model import dipole, dipole_k
-from ..filters import key_201_2009 as j0j1filt
-from ..filters import key_201_CosSin_2012 as sincosfilt
-from ..utils import printstartfinish, timedelta, default_timer
+from empymod.filters import DigitalFilter
+from empymod.model import dipole, dipole_k
+from empymod.filters import key_201_2009 as j0j1filt
+from empymod.filters import key_201_CosSin_2012 as sincosfilt
+from empymod.utils import printstartfinish, timedelta, default_timer
 
 __all__ = ['design', 'save_filter', 'load_filter', 'plot_result',
            'print_result', 'Ghosh', 'j0_1', 'j0_2', 'j0_3', 'j0_4', 'j0_5',
@@ -250,20 +250,19 @@ def design(n, spacing, shift, fI, fC=False, r=None, r_def=(1, 1, 2), reim=None,
     r"""Digital linear filter (DLF) design
 
     This routine can be used to design digital linear filters for the Hankel or
-    Fourier transform, or for any linear transform ([Ghosh_1970]_). For this
+    Fourier transform, or for any linear transform ([Ghos70]_). For this
     included or provided theoretical transform pairs can be used.
     Alternatively, one can use the EM modeller empymod to use the responses to
     an arbitrary 1D model as numerical transform pair.
 
     This filter designing tool uses the direct matrix inversion method as
-    described in [Kong_2007]_ and is based on scripts by [Key_2012]_. The tool
-    is an add-on to the electromagnetic modeller empymod [Werthmuller_2017]_.
-    Fruitful discussions with Evert Slob and Kerry Key improved the add-on
+    described in [Kong07]_ and is based on scripts by [Key12]_. The tool is an
+    add-on to the electromagnetic modeller empymod [Wert17]_. Fruitful
+    discussions with Evert Slob and Kerry Key improved the add-on
     substantially.
 
-    Example notebooks of its usage can be found in the repo
-    `github.com/empymod/example-notebooks
-    <https://github.com/empymod/example-notebooks>`_.
+    Example notebooks of its usage can be found in the documentation-gallery,
+    https://empymod.readthedocs.io/en/stable/examples
 
     Parameters
     ----------
@@ -523,11 +522,14 @@ def save_filter(name, filt, full=None, path='filters'):
         np.savetxt(fullfile, fullsave, header=header)
 
 
-def load_filter(name, full=False, path='filters'):
+def load_filter(name, full=False, path='filters', filter_coeff=None):
     r"""Load saved DLF-filter and inversion output from text files."""
 
     # First we'll get the filter using its internal routine.
-    filt = DigitalFilter(name.split('.')[0])
+    if filter_coeff is None:
+        filt = DigitalFilter(name.split('.')[0])
+    else:
+        filt = DigitalFilter(name.split('.')[0], filter_coeff=filter_coeff)
     filt.fromfile(path)
 
     # If full, we get the inversion output
@@ -633,13 +635,22 @@ def plot_result(filt, full, prntres=True):
     if spacing.size > 1 or shift.size > 1:
         plt.subplot(122)
     plt.title('Filter values of best filter')
-    for attr in ['j0', 'j1', 'sin', 'cos']:
+
+    # Backwards compatibility, for old filters without `filt.filter_coeff`.
+    if hasattr(filt, 'filter_coeff'):
+        filter_coeff = filt.filter_coeff
+    else:
+        filter_coeff = ['j0', 'j1', 'sin', 'cos']
+
+    # Loop over filters.
+    for attr in filter_coeff:
         if hasattr(filt, attr):
             plt.plot(np.log10(filt.base),
                      np.log10(np.abs(getattr(filt, attr))), '.-', lw=.5,
                      label='abs('+attr+')')
             plt.plot(np.log10(filt.base), np.log10(-getattr(filt, attr)), '.',
                      color='k', ms=4)
+
     plt.plot(np.inf, 0, '.', color='k', ms=4, label='Neg. values')
     plt.xlabel('Base (log10)')
     plt.ylabel('Abs(Amplitude) (log10)')
@@ -755,22 +766,23 @@ def _plot_transform_pairs(fCI, r, k, axes, tit):
         else:
             plt.loglog(r, np.abs(f.rhs(r)), lw=2, label=f.name)
 
-    # Transform with Key
+    # Transform with Key in the case of Hankel or Fourier transform.
     for f in fCI:
-        if f.name[1] in ['0', '1', '2']:
-            filt = j0j1filt()
-        else:
-            filt = sincosfilt()
-        kk = filt.base/r[:, None]
-        if f.name == 'j2':
-            lhs = f.lhs(kk)
-            kr0 = np.dot(lhs[0], getattr(filt, 'j0'))/r
-            kr1 = np.dot(lhs[1], getattr(filt, 'j1'))/r**2
-            kr = kr0+kr1
-        else:
-            kr = np.dot(f.lhs(kk), getattr(filt, f.name))/r
+        if f.name in ['j0', 'j1', 'j2', 'cos', 'sin']:
+            if f.name[1] in ['0', '1', '2'] and f.name[0] == 'j':
+                filt = j0j1filt()
+            else:
+                filt = sincosfilt()
+            kk = filt.base/r[:, None]
+            if f.name == 'j2':
+                lhs = f.lhs(kk)
+                kr0 = np.dot(lhs[0], getattr(filt, 'j0'))/r
+                kr1 = np.dot(lhs[1], getattr(filt, 'j1'))/r**2
+                kr = kr0+kr1
+            else:
+                kr = np.dot(f.lhs(kk), getattr(filt, f.name))/r
 
-        plt.loglog(r, np.abs(kr), '-.', lw=2, label=filt.name)
+            plt.loglog(r, np.abs(kr), '-.', lw=2, label=filt.name)
 
     if tit != 'fC':
         plt.xlabel('r')
@@ -835,7 +847,7 @@ class Ghosh:
     r"""Simple Class for Theoretical Transform Pairs.
 
     Named after D. P. Ghosh, honouring his 1970 Ph.D. thesis with which he
-    introduced the digital filter method to geophysics ([Ghosh_1970]_).
+    introduced the digital filter method to geophysics ([Ghos70]_).
     """
     def __init__(self, name, lhs, rhs):
         r"""Add the filter name, lhs, and rhs."""
@@ -847,7 +859,7 @@ class Ghosh:
 # # 3.a Hankel J0 transform pairs
 
 def j0_1(a=1):
-    r"""Hankel transform pair J0_1 ([Anderson_1975]_)."""
+    r"""Hankel transform pair J0_1 ([Ande75]_)."""
 
     def lhs(x):
         return x*np.exp(-a*x**2)
@@ -859,7 +871,7 @@ def j0_1(a=1):
 
 
 def j0_2(a=1):
-    r"""Hankel transform pair J0_2 ([Anderson_1975]_)."""
+    r"""Hankel transform pair J0_2 ([Ande75]_)."""
 
     def lhs(x):
         return np.exp(-a*x)
@@ -871,7 +883,7 @@ def j0_2(a=1):
 
 
 def j0_3(a=1):
-    r"""Hankel transform pair J0_3 ([Guptasarma_and_Singh_1997]_)."""
+    r"""Hankel transform pair J0_3 ([GuSi97]_)."""
 
     def lhs(x):
         return x*np.exp(-a*x)
@@ -883,7 +895,7 @@ def j0_3(a=1):
 
 
 def j0_4(f=1, rho=0.3, z=50):
-    r"""Hankel transform pair J0_4 ([Chave_and_Cox_1982]_).
+    r"""Hankel transform pair J0_4 ([ChCo82]_).
 
     Parameters
     ----------
@@ -910,7 +922,7 @@ def j0_4(f=1, rho=0.3, z=50):
 
 
 def j0_5(f=1, rho=0.3, z=50):
-    r"""Hankel transform pair J0_5 ([Chave_and_Cox_1982]_).
+    r"""Hankel transform pair J0_5 ([ChCo82]_).
 
     Parameters
     ----------
@@ -939,7 +951,7 @@ def j0_5(f=1, rho=0.3, z=50):
 # # 3.b Hankel J1 transform pairs
 
 def j1_1(a=1):
-    r"""Hankel transform pair J1_1 ([Anderson_1975]_)."""
+    r"""Hankel transform pair J1_1 ([Ande75]_)."""
 
     def lhs(x):
         return x**2*np.exp(-a*x**2)
@@ -951,7 +963,7 @@ def j1_1(a=1):
 
 
 def j1_2(a=1):
-    r"""Hankel transform pair J1_2 ([Anderson_1975]_)."""
+    r"""Hankel transform pair J1_2 ([Ande75]_)."""
 
     def lhs(x):
         return np.exp(-a*x)
@@ -963,7 +975,7 @@ def j1_2(a=1):
 
 
 def j1_3(a=1):
-    r"""Hankel transform pair J1_3 ([Anderson_1975]_)."""
+    r"""Hankel transform pair J1_3 ([Ande75]_)."""
 
     def lhs(x):
         return x*np.exp(-a*x)
@@ -975,7 +987,7 @@ def j1_3(a=1):
 
 
 def j1_4(f=1, rho=0.3, z=50):
-    r"""Hankel transform pair J1_4 ([Chave_and_Cox_1982]_).
+    r"""Hankel transform pair J1_4 ([ChCo82]_).
 
     Parameters
     ----------
@@ -1002,7 +1014,7 @@ def j1_4(f=1, rho=0.3, z=50):
 
 
 def j1_5(f=1, rho=0.3, z=50):
-    r"""Hankel transform pair J1_5 ([Chave_and_Cox_1982]_).
+    r"""Hankel transform pair J1_5 ([ChCo82]_).
 
     Parameters
     ----------
@@ -1030,8 +1042,8 @@ def j1_5(f=1, rho=0.3, z=50):
 
 # # 3.c Fourier sine transform pairs
 
-def sin_1(a=1):
-    r"""Fourier sine transform pair sin_1 ([Anderson_1975]_)."""
+def sin_1(a=1, inverse=False):
+    r"""Fourier sine transform pair sin_1 ([Ande75]_)."""
 
     def lhs(x):
         return x*np.exp(-a**2*x**2)
@@ -1039,11 +1051,14 @@ def sin_1(a=1):
     def rhs(b):
         return np.sqrt(np.pi)*b*np.exp(-b**2/(4*a**2))/(4*a**3)
 
-    return Ghosh('sin', lhs, rhs)
+    if inverse:
+        return Ghosh('sin', rhs, lhs)
+    else:
+        return Ghosh('sin', lhs, rhs)
 
 
-def sin_2(a=1):
-    r"""Fourier sine transform pair sin_2 ([Anderson_1975]_)."""
+def sin_2(a=1, inverse=False):
+    r"""Fourier sine transform pair sin_2 ([Ande75]_)."""
 
     def lhs(x):
         return np.exp(-a*x)
@@ -1051,11 +1066,14 @@ def sin_2(a=1):
     def rhs(b):
         return b/(b**2 + a**2)
 
-    return Ghosh('sin', lhs, rhs)
+    if inverse:
+        return Ghosh('sin', rhs, lhs)
+    else:
+        return Ghosh('sin', lhs, rhs)
 
 
-def sin_3(a=1):
-    r"""Fourier sine transform pair sin_3 ([Anderson_1975]_)."""
+def sin_3(a=1, inverse=False):
+    r"""Fourier sine transform pair sin_3 ([Ande75]_)."""
 
     def lhs(x):
         return x/(a**2 + x**2)
@@ -1063,13 +1081,16 @@ def sin_3(a=1):
     def rhs(b):
         return np.pi*np.exp(-a*b)/2
 
-    return Ghosh('sin', lhs, rhs)
+    if inverse:
+        return Ghosh('sin', rhs, lhs)
+    else:
+        return Ghosh('sin', lhs, rhs)
 
 
 # # 3.d Fourier cosine transform pairs
 
-def cos_1(a=1):
-    r"""Fourier cosine transform pair cos_1 ([Anderson_1975]_)."""
+def cos_1(a=1, inverse=False):
+    r"""Fourier cosine transform pair cos_1 ([Ande75]_)."""
 
     def lhs(x):
         return np.exp(-a**2*x**2)
@@ -1077,11 +1098,14 @@ def cos_1(a=1):
     def rhs(b):
         return np.sqrt(np.pi)*np.exp(-b**2/(4*a**2))/(2*a)
 
-    return Ghosh('cos', lhs, rhs)
+    if inverse:
+        return Ghosh('cos', rhs, lhs)
+    else:
+        return Ghosh('cos', lhs, rhs)
 
 
-def cos_2(a=1):
-    r"""Fourier cosine transform pair cos_2 ([Anderson_1975]_)."""
+def cos_2(a=1, inverse=False):
+    r"""Fourier cosine transform pair cos_2 ([Ande75]_)."""
 
     def lhs(x):
         return np.exp(-a*x)
@@ -1089,11 +1113,14 @@ def cos_2(a=1):
     def rhs(b):
         return a/(b**2 + a**2)
 
-    return Ghosh('cos', lhs, rhs)
+    if inverse:
+        return Ghosh('cos', rhs, lhs)
+    else:
+        return Ghosh('cos', lhs, rhs)
 
 
-def cos_3(a=1):
-    r"""Fourier cosine transform pair cos_3 ([Anderson_1975]_)."""
+def cos_3(a=1, inverse=False):
+    r"""Fourier cosine transform pair cos_3 ([Ande75]_)."""
 
     def lhs(x):
         return 1/(a**2 + x**2)
@@ -1101,7 +1128,10 @@ def cos_3(a=1):
     def rhs(b):
         return np.pi*np.exp(-a*b)/(2*a)
 
-    return Ghosh('cos', lhs, rhs)
+    if inverse:
+        return Ghosh('cos', rhs, lhs)
+    else:
+        return Ghosh('cos', lhs, rhs)
 
 
 # # 3.e Modeller
@@ -1294,9 +1324,13 @@ def _calculate_filter(n, spacing, shift, fI, r_def, reim, name):
     dlf = DigitalFilter(name.split('.')[0])
     dlf.base = base
     dlf.factor = np.around(np.average(base[1:]/base[:-1]), 15)
+    dlf.filter_coeff = []
 
     # Loop over transforms
     for f in fI:
+        # Add current filter name.
+        dlf.filter_coeff.append(f.name)
+
         # Calculate lhs and rhs for inversion
         lhs = reim(f.lhs(k))
         rhs = reim(f.rhs(r)*r)

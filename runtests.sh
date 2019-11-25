@@ -26,7 +26,7 @@ PCKGS="numpy scipy pytest pytest-cov"
 NMXPR="numexpr matplotlib IPython"
 STR2="**  WITH numexpr/matplotlib/IPython  "
 PROPS="--mpl --flake8"
-INST="pytest-flake8 pytest-mpl"
+INST="pytest-flake8 pytest-mpl scooby"
 SD="_soft-dep"
 WARN=""
 
@@ -101,9 +101,10 @@ for i in ${PYTHON3VERSION[@]}; do
   cp tests/matplotlibrc .
   pytest --cov=empymod $PROPS $WARN
   rm matplotlibrc
+  coverage html
 
   # De-activate venv
-  conda deactivate $NAME
+  conda deactivate
 
   # Remove venv
   if [ "$DELETE" = true ] ; then

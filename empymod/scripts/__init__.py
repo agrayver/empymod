@@ -1,4 +1,4 @@
-# Copyright 2017-2019 Dieter Werthmüller
+# Copyright 2017-2019 The empymod Developers.
 #
 # This file is part of empymod.
 #
@@ -6,7 +6,7 @@
 # use this file except in compliance with the License.  You may obtain a copy
 # of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -14,9 +14,7 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-from . import tmtemod
-from . import fdesign
-from . import printinfo
-from .printinfo import versions, Versions
+from empymod.scripts import tmtemod
+from empymod.scripts import fdesign
 
-__all__ = ['tmtemod', 'fdesign', 'printinfo', 'versions', 'Versions']
+__all__ = ['tmtemod', 'fdesign']

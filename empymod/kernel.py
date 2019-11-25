@@ -8,15 +8,15 @@ response. Plus analytical full- and half-space solutions.
 
 The functions ``wavenumber``, ``angle_factor``, ``fullspace``, ``greenfct``,
 ``reflections``, and ``fields`` are based on source files (specified in each
-function) from the source code distributed with [Hunziker_et_al_2015]_, which
-can be found at `software.seg.org/2015/0001
-<http://software.seg.org/2015/0001>`_.  These functions are (c) 2015 by
-Hunziker et al. and the Society of Exploration Geophysicists,
-http://software.seg.org/disclaimer.txt.  Please read the NOTICE-file in the
-root directory for more information regarding the involved licenses.
+function) from the source code distributed with [HuTS15]_, which can be found
+at `software.seg.org/2015/0001 <https://software.seg.org/2015/0001>`_.  These
+functions are (c) 2015 by Hunziker et al. and the Society of Exploration
+Geophysicists, https://software.seg.org/disclaimer.txt.  Please read the
+NOTICE-file in the root directory for more information regarding the involved
+licenses.
 
 """
-# Copyright 2016-2019 Dieter Werthmüller
+# Copyright 2016-2019 The empymod Developers.
 #
 # This file is part of empymod.
 #
@@ -24,7 +24,7 @@ root directory for more information regarding the involved licenses.
 # use this file except in compliance with the License.  You may obtain a copy
 # of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -54,13 +54,13 @@ def wavenumber(zsrc, zrec, lsrc, lrec, depth, etaH, etaV, zetaH, zetaV, lambd,
     functions of order 0 (:math:`J_0`) and 1 (:math:`J_1`), respectively.
 
     This function corresponds loosely to equations 105--107, 111--116,
-    119--121, and 123--128 in [Hunziker_et_al_2015]_, and equally loosely to
-    the file ``kxwmod.c``.
+    119--121, and 123--128 in [HuTS15]_, and equally loosely to the file
+    ``kxwmod.c``.
 
-    [Hunziker_et_al_2015]_ uses Bessel functions of orders 0, 1, and 2
-    (:math:`J_0, J_1, J_2`). The implementations of the *Fast Hankel Transform*
-    and the *Quadrature-with-Extrapolation* in ``transform`` are set-up with
-    Bessel functions of order 0 and 1 only. This is achieved by applying the
+    [HuTS15]_ uses Bessel functions of orders 0, 1, and 2 (:math:`J_0, J_1,
+    J_2`). The implementations of the *Fast Hankel Transform* and the
+    *Quadrature-with-Extrapolation* in ``transform`` are set-up with Bessel
+    functions of order 0 and 1 only. This is achieved by applying the
     recurrence formula
 
     .. math:: J_2(kr) = \frac{2}{kr} J_1(kr) - J_0(kr) \ .
@@ -138,10 +138,10 @@ def greenfct(zsrc, zrec, lsrc, lrec, depth, etaH, etaV, zetaH, zetaV, lambd,
               \tilde{g}^{te}_{hh}, \tilde{g}^{te}_{zz}
 
     This function corresponds to equations 108--110, 117/118, 122; 89--94,
-    A18--A23, B13--B15; 97--102 A26--A31, and B16--B18 in
-    [Hunziker_et_al_2015]_, and loosely to the corresponding files
-    ``Gamma.F90``, ``Wprop.F90``, ``Ptotalx.F90``, ``Ptotalxm.F90``,
-    ``Ptotaly.F90``, ``Ptotalym.F90``, ``Ptotalz.F90``, and ``Ptotalzm.F90``.
+    A18--A23, B13--B15; 97--102 A26--A31, and B16--B18 in [HuTS15]_, and
+    loosely to the corresponding files ``Gamma.F90``, ``Wprop.F90``,
+    ``Ptotalx.F90``, ``Ptotalxm.F90``, ``Ptotaly.F90``, ``Ptotalym.F90``,
+    ``Ptotalz.F90``, and ``Ptotalzm.F90``.
 
     The Green's functions are multiplied according to Eqs 105-107, 111-116,
     119-121, 123-128; with the factors inside the integrals.
@@ -204,7 +204,7 @@ def greenfct(zsrc, zrec, lsrc, lrec, depth, etaH, etaV, zetaH, zetaV, lambd,
                 else:
                     Wu = np.exp(-lrecGam*ddepth)
             else:
-                Wu = np.zeros(lrecGam.shape, dtype=complex)
+                Wu = np.zeros_like(lrecGam)
             if lrec != 0:     # No downgoing field propagator if rec in first
                 ddepth = zrec - depth[lrec]
                 if use_ne_eval:
@@ -212,7 +212,7 @@ def greenfct(zsrc, zrec, lsrc, lrec, depth, etaH, etaV, zetaH, zetaV, lambd,
                 else:
                     Wd = np.exp(-lrecGam*ddepth)
             else:
-                Wd = np.zeros(lrecGam.shape, dtype=complex)
+                Wd = np.zeros_like(lrecGam)
 
             # Field at rec level (coming from below (Pu) and above (Pd) rec)
             Pu, Pd = fields(depth, Rp, Rm, Gam, lrec, lsrc, zsrc, ab, TM,
@@ -223,7 +223,7 @@ def greenfct(zsrc, zrec, lsrc, lrec, depth, etaH, etaV, zetaH, zetaV, lambd,
 
             # Green's function depending on <ab>
             if depth.size == 1:  # If only one layer, no reflections/fields
-                green = np.zeros(lrecGam.shape, dtype=complex)
+                green = np.zeros_like(lrecGam)
             elif ab in [13, 23, 31, 32, 14, 24, 15, 25]:
                 green = Pu*Wu - Pd*Wd
             else:
@@ -319,8 +319,8 @@ def reflections(depth, e_zH, Gam, lrec, lsrc, use_ne_eval):
     .. math:: R^\pm_n, \bar{R}^\pm_n
 
     This function corresponds to equations 64/65 and A-11/A-12 in
-    [Hunziker_et_al_2015]_, and loosely to the corresponding files ``Rmin.F90``
-    and ``Rplus.F90``.
+    [HuTS15]_, and loosely to the corresponding files ``Rmin.F90`` and
+    ``Rplus.F90``.
 
     This function is called from the function :mod:`kernel.greenfct`.
 
@@ -350,7 +350,7 @@ def reflections(depth, e_zH, Gam, lrec, lsrc, use_ne_eval):
 
         # Pre-allocate Ref
         Ref = np.zeros((Gam.shape[0], Gam.shape[1], abs(lsrc-lrec)+1,
-                        Gam.shape[3]), dtype=complex)
+                        Gam.shape[3]), dtype=Gam.dtype)
 
         # Calculate the reflection
         for iz in layer_count:
@@ -410,9 +410,9 @@ def fields(depth, Rp, Rm, Gam, lrec, lsrc, zsrc, ab, TM, use_ne_eval):
           P^{d\pm}_{s+1}, P^{d\pm}_n, \bar{P}^{d\pm}_{s+1}, \bar{P}^{d\pm}_n
 
     This function corresponds to equations 81/82, 95/96, 103/104, A-8/A-9,
-    A-24/A-25, and A-32/A-33 in [Hunziker_et_al_2015]_, and loosely to the
-    corresponding files ``Pdownmin.F90``, ``Pdownplus.F90``, ``Pupmin.F90``,
-    and ``Pdownmin.F90``.
+    A-24/A-25, and A-32/A-33 in [HuTS15]_, and loosely to the corresponding
+    files ``Pdownmin.F90``, ``Pdownplus.F90``, ``Pupmin.F90``, and
+    ``Pdownmin.F90``.
 
     This function is called from the function :mod:`kernel.greenfct`.
 
@@ -461,11 +461,11 @@ def fields(depth, Rp, Rm, Gam, lrec, lsrc, zsrc, ab, TM, use_ne_eval):
 
         # No upgoing field if rec is in last layer or below src
         if up and (lrec == depth.size-1 or lrec > lsrc):
-            Pu = np.zeros(iGam.shape, dtype=complex)
+            Pu = np.zeros_like(iGam)
             continue
         # No downgoing field if rec is in first layer or above src
         if not up and (lrec == 0 or lrec < lsrc):
-            Pd = np.zeros(iGam.shape, dtype=complex)
+            Pd = np.zeros_like(iGam)
             continue
 
         # Swaps if up=True
@@ -630,11 +630,11 @@ def fullspace(off, angle, zsrc, zrec, etaH, etaV, zetaH, zetaV, ab, msrc,
               \hat{G}^{ee}_{33}, \hat{G}^{em}_{\alpha\beta},
               \hat{G}^{em}_{\alpha 3}
 
-    This function corresponds to equations 45--50 in [Hunziker_et_al_2015]_,
-    and loosely to the corresponding files ``Gin11.F90``, ``Gin12.F90``,
-    ``Gin13.F90``, ``Gin22.F90``, ``Gin23.F90``, ``Gin31.F90``, ``Gin32.F90``,
-    ``Gin33.F90``, ``Gin41.F90``, ``Gin42.F90``, ``Gin43.F90``, ``Gin51.F90``,
-    ``Gin52.F90``, ``Gin53.F90``, ``Gin61.F90``, and ``Gin62.F90``.
+    This function corresponds to equations 45--50 in [HuTS15]_, and loosely to
+    the corresponding files ``Gin11.F90``, ``Gin12.F90``, ``Gin13.F90``,
+    ``Gin22.F90``, ``Gin23.F90``, ``Gin31.F90``, ``Gin32.F90``, ``Gin33.F90``,
+    ``Gin41.F90``, ``Gin42.F90``, ``Gin43.F90``, ``Gin51.F90``, ``Gin52.F90``,
+    ``Gin53.F90``, ``Gin61.F90``, and ``Gin62.F90``.
 
     This function is called from one of the modelling routines in :mod:`model`.
     Consult these modelling routines for a description of the input and output
@@ -799,8 +799,9 @@ def halfspace(off, angle, zsrc, zrec, etaH, etaV, freqtime, ab, signal,
 
     Calculates the frequency- or time-space domain electromagnetic response for
     a half-space below air using the diffusive approximation, as given in
-    [Slob_et_al_2010]_, where the electric source is located at [0, 0, zsrc],
-    and the electric receiver at [xco, yco, zrec].
+    [SlHM10]_, where the electric source is located at [x=0, y=0, z=zsrc>=0],
+    and the electric receiver at [x=cos(angle)*off, y=sin(angle)*off,
+    z=zrec>=0].
 
     It can also be used to calculate the fullspace solution or the separate
     fields: direct field, reflected field, and airwave; always using the
@@ -816,10 +817,10 @@ def halfspace(off, angle, zsrc, zrec, etaH, etaV, freqtime, ab, signal,
     res = np.real(1/etaH[0, 0])
     aniso = 1/np.sqrt(np.real(etaV[0, 0])*res)
 
-    # Define freq/time and dtype depending on signal.
+    # Define sval/time and dtype depending on signal.
     if signal is None:
-        freq = freqtime
-        dtype = complex
+        sval = freqtime
+        dtype = etaH.dtype
     else:
         time = freqtime
         if signal == -1:  # Calculate DC
@@ -843,9 +844,6 @@ def halfspace(off, angle, zsrc, zrec, etaH, etaV, freqtime, ab, signal,
     tm = mu_0*rm**2/(res*4)
     tsp = mu_0*rsp**2/(res*aniso**2*4)  # Scaled diffusion time
     tsm = mu_0*rsm**2/(res*aniso**2*4)
-    #
-    if signal is None:
-        s = 2j*np.pi*freq  # Laplace parameter
 
     # delta-fct delta_\alpha\beta
     if ab in [11, 22, 33]:
@@ -872,20 +870,20 @@ def halfspace(off, angle, zsrc, zrec, etaH, etaV, freqtime, ab, signal,
     # Exponential diffusion functions for m=0,1,2
 
     if signal is None:  # Frequency-domain
-        f0p = np.exp(-2*np.sqrt(s*tp))
-        f0m = np.exp(-2*np.sqrt(s*tm))
-        fs0p = np.exp(-2*np.sqrt(s*tsp))
-        fs0m = np.exp(-2*np.sqrt(s*tsm))
+        f0p = np.exp(-2*np.sqrt(sval*tp))
+        f0m = np.exp(-2*np.sqrt(sval*tm))
+        fs0p = np.exp(-2*np.sqrt(sval*tsp))
+        fs0m = np.exp(-2*np.sqrt(sval*tsm))
 
-        f1p = np.sqrt(s)*f0p
-        f1m = np.sqrt(s)*f0m
-        fs1p = np.sqrt(s)*fs0p
-        fs1m = np.sqrt(s)*fs0m
+        f1p = np.sqrt(sval)*f0p
+        f1m = np.sqrt(sval)*f0m
+        fs1p = np.sqrt(sval)*fs0p
+        fs1m = np.sqrt(sval)*fs0m
 
-        f2p = s*f0p
-        f2m = s*f0m
-        fs2p = s*fs0p
-        fs2m = s*fs0m
+        f2p = sval*f0p
+        f2m = sval*f0m
+        fs2p = sval*fs0p
+        fs2m = sval*fs0m
 
     elif abs(signal) == 1:  # Time-domain step response
         # Replace F(m) with F(m-2)
@@ -987,13 +985,17 @@ def halfspace(off, angle, zsrc, zrec, etaH, etaV, freqtime, ab, signal,
 
         def BK(xip, nr):
             r"""Return BK_nr."""
-            return np.exp(-1j*np.imag(xip))*special.kve(nr, xip)
+            if np.isrealobj(xip):
+                # To keep it real in Laplace-domain [exp(-1j*0) = 1-0j].
+                return special.kve(nr, xip)
+            else:
+                return np.exp(-1j*np.imag(xip))*special.kve(nr, xip)
 
         # Airwave calculation
-        def airwave(s, hp, rp, res, fab, delta):
+        def airwave(sval, hp, rp, res, fab, delta):
             r"""Return airwave."""
             # Parameters
-            zeta = s*mu_0
+            zeta = sval*mu_0
             gamH = np.sqrt(zeta/res)
             xip = gamH*(rp + hp)/2
             xim = gamH*(rp - hp)/2
@@ -1006,19 +1008,19 @@ def halfspace(off, angle, zsrc, zrec, etaH, etaV, freqtime, ab, signal,
             BK1 = BK(xip, 1)
 
             # Calculation
-            P1 = (s*mu_0)**(3/2)*fab*hp/(4*np.sqrt(res))
-            P2 = 4*BI1*BK0 - (3*BI0 - 4*np.sqrt(res)*BI1/(np.sqrt(s*mu_0) *
+            P1 = (sval*mu_0)**(3/2)*fab*hp/(4*np.sqrt(res))
+            P2 = 4*BI1*BK0 - (3*BI0 - 4*np.sqrt(res)*BI1/(np.sqrt(sval*mu_0) *
                               (rp + hp)) + BI2)*BK1
             P3 = 3*fab/rp**2 - delta
-            P4 = (s*mu_0*hp*rp*(BI0*BK0 - BI1*BK1) +
-                  np.sqrt(res*s*mu_0)*BI0*BK1 *
-                  (rp + hp) + np.sqrt(res*s*mu_0)*BI1*BK0*(rp - hp))
+            P4 = (sval*mu_0*hp*rp*(BI0*BK0 - BI1*BK1) +
+                  np.sqrt(res*sval*mu_0)*BI0*BK1 *
+                  (rp + hp) + np.sqrt(res*sval*mu_0)*BI1*BK0*(rp - hp))
 
             return (P1*P2 - P3*P4)/(4*np.pi*rp**3)
 
         # Airwave depending on signal
         if signal is None:  # Frequency-domain
-            air = airwave(s, hp, rp, res, fab, delta)
+            air = airwave(sval, hp, rp, res, fab, delta)
 
         elif abs(signal) == 1:  # Time-domain step response
             # Solution for step-response air-wave is not analytical, but uses
@@ -1036,8 +1038,8 @@ def halfspace(off, angle, zsrc, zrec, etaH, etaV, freqtime, ab, signal,
                 return Dk.sum()*(-1)**(k+K/2)
 
             for k in range(1, K+1):
-                s = k*np.log(2)/time
-                cair = airwave(s, hp, rp, res, fab, delta)
+                sval = k*np.log(2)/time
+                cair = airwave(sval, hp, rp, res, fab, delta)
                 air += coeff_dk(k, K)*cair.real/k
 
         else:  # Time-domain impulse response

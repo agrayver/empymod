@@ -9,6 +9,12 @@ except ImportError:
     use_vml = False
     use_ne_eval = False
 
+# Optional import
+try:
+    import scooby
+except ImportError:
+    scooby = False
+
 from empymod import utils, filters
 
 
@@ -19,13 +25,13 @@ def test_emarray():
     assert out.real == 3
     assert out.imag == 0
 
-    out = utils.EMArray(1, 1)
+    out = utils.EMArray(1+1j)
     assert out.amp == np.sqrt(2)
     assert out.pha == 45.
     assert out.real == 1
     assert out.imag == 1
 
-    out = utils.EMArray([1, 0], [1, 1])
+    out = utils.EMArray([1+1j, 0+1j])
     assert_allclose(out.amp, [np.sqrt(2), 1])
     assert_allclose(out.pha, [45., 90.])
     assert_allclose(out.real, [1, 0])
@@ -213,6 +219,17 @@ def test_check_frequency(capsys):
     assert_allclose(etaV, retaV)
     assert_allclose(zetaH, rzetaH)
     assert_allclose(zetaV, rzetaV)
+
+    output = utils.check_frequency(-np.array([1e-40, 1, 1e6]),
+                                   np.array([20, .02]),
+                                   np.array([1, 3]), np.array([10, 5]),
+                                   np.array([20, 50]), np.array([1, 1]),
+                                   np.array([10, 5]), 3)
+    out, _ = capsys.readouterr()
+    assert "   s-value    [Hz] :  " in out
+    assert "* WARNING :: Laplace val < " in out
+    freq, etaH, etaV, zetaH, zetaV = output
+    assert_allclose(freq, rfreq)
 
 
 def test_check_hankel(capsys):
@@ -1031,3 +1048,55 @@ def test_spline_backwards_hankel():
     out1, out2 = utils.spline_backwards_hankel('QWE', None, None)
     assert out1 == {}
     assert out2 is None
+
+
+def test_report(capsys):
+    out, _ = capsys.readouterr()  # Empty capsys
+
+    # Reporting is now done by the external package scooby.
+    # We just ensure the shown packages do not change (core and optional).
+    if scooby:
+        out1 = scooby.Report(
+                core=['numpy', 'scipy', 'empymod'],
+                optional=['numexpr', 'IPython', 'matplotlib'],
+                ncol=3)
+        out2 = utils.Report()
+
+        # Ensure they're the same; exclude time to avoid errors.
+        assert out1.__repr__()[115:] == out2.__repr__()[115:]
+
+    else:  # soft dependency
+        _ = utils.Report()
+        out, _ = capsys.readouterr()  # Empty capsys
+        assert 'WARNING :: `empymod.Report` requires `scooby`' in out
+
+
+def test_versions_backwards():
+    if scooby:
+        out1 = utils.Report()
+        out2 = utils.Versions()
+        out3 = utils.versions()
+
+        # Exclude minutes and seconds, to avoid stupid failures.
+        assert out1.__repr__()[150:] == out2.__repr__()[150:]
+        assert out1.__repr__()[150:] == out3.__repr__()[150:]
+
+
+def test_emarray_backwards():
+    out = utils.EMArray(3)
+    assert out.amp == 3
+    assert out.pha == 0
+    assert out.real == 3
+    assert out.imag == 0
+
+    out = utils.EMArray(1, 1)
+    assert out.amp == np.sqrt(2)
+    assert out.pha == 45.
+    assert out.real == 1
+    assert out.imag == 1
+
+    out = utils.EMArray([1, 0], [1, 1])
+    assert_allclose(out.amp, [np.sqrt(2), 1])
+    assert_allclose(out.pha, [45., 90.])
+    assert_allclose(out.real, [1, 0])
+    assert_allclose(out.imag, [1, 1])

@@ -10,11 +10,24 @@ Version: |version| ~ Date: |today|
   :start-after: sphinx-inclusion-marker
 
 .. toctree::
+   :maxdepth: 2
    :hidden:
+   :caption: User Manual
 
    manual
-   roadmap
-   changelog
+   transforms
+   speedmemoryaccuracy
+   examples/index
+   references
    credits
+   changelog
+   maintenance
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: API
+
+   modeller
    code
    addons

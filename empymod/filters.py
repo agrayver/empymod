@@ -4,7 +4,7 @@ r"""
 ========================================
 
 Filters for the *Digital Linear Filter* (DLF) method for the Hankel
-[Ghosh_1970]_) and the Fourier ([Anderson_1975]_) transforms.
+[Ghos70]_) and the Fourier ([Ande75]_) transforms.
 
 To calculate the ``dlf.factor`` I used
 
@@ -13,29 +13,29 @@ To calculate the ``dlf.factor`` I used
     np.around(np.average(dlf.base[1:]/dlf.base[:-1]), 15)
 
 
-The filters ``kong_61_2007`` and ``kong_241_2007`` from [Kong_2007]_, and
+The filters ``kong_61_2007`` and ``kong_241_2007`` from [Kong07]_, and
 ``key_101_2009``, ``key_201_2009``, ``key_401_2009``, ``key_81_CosSin_2009``,
-``key_241_CosSin_2009``, and ``key_601_CosSin_2009`` from [Key_2009]_ are taken
-from *DIPOLE1D*, [Key_2009]_, which can be downloaded at
-http://marineemlab.ucsd.edu/Projects/Occam/1DCSEM (1DCSEM_). *DIPOLE1D* is
+``key_241_CosSin_2009``, and ``key_601_CosSin_2009`` from [Key09]_ are taken
+from *DIPOLE1D*, [Key09]_, which can be downloaded at
+https://marineemlab.ucsd.edu/Projects/Occam/1DCSEM (1DCSEM_). *DIPOLE1D* is
 distributed under the license GNU GPL version 3 or later. Kerry Key gave his
 written permission to re-distribute the filters under the Apache License,
 Version 2.0 (email from Kerry Key to Dieter Werthmüller, 21 November 2016).
 
-The filters ``anderson_801_1982`` from [Anderson_1982]_ and ``key_51_2012``,
+The filters ``anderson_801_1982`` from [Ande82]_ and ``key_51_2012``,
 ``key_101_2012``, ``key_201_2012``, ``key_101_CosSin_2012``, and
-``key_201_CosSin_2012``, all from [Key_2012]_, are taken from the software
-distributed with [Key_2012]_ and available at http://software.seg.org/2012/0003
+``key_201_CosSin_2012``, all from [Key12]_, are taken from the software
+distributed with [Key12]_ and available at https://software.seg.org/2012/0003
 (SEG-2012-003_). These filters are distributed under the SEG license.
 
 The filter ``wer_201_2018`` was designed with the add-on ``fdesign``, see
 https://github.com/empymod/article-fdesign.
 
-.. _1DCSEM: http://marineemlab.ucsd.edu/Projects/Occam/1DCSEM
-.. _SEG-2012-003: http://software.seg.org/2012/0003
+.. _1DCSEM: https://marineemlab.ucsd.edu/Projects/Occam/1DCSEM
+.. _SEG-2012-003: https://software.seg.org/2012/0003
 
 """
-# Copyright 2016-2019 Dieter Werthmüller
+# Copyright 2016-2019 The empymod Developers.
 #
 # This file is part of empymod.
 #
@@ -43,7 +43,7 @@ https://github.com/empymod/article-fdesign.
 # use this file except in compliance with the License.  You may obtain a copy
 # of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -65,14 +65,41 @@ __all__ = ['DigitalFilter', 'kong_61_2007', 'kong_241_2007', 'key_101_2009',
 # 0. Filter Class and saving/loading routines
 
 class DigitalFilter:
-    r"""Simple Class for Digital Linear Filters."""
-    def __init__(self, name, savename=None):
+    r"""Simple Class for Digital Linear Filters.
+
+
+    Parameters
+    ----------
+    name : str
+        Name of the DFL.
+
+    savename = str
+        Name with which the filter is saved. If None (default) it is set to the
+        same value as ``name``.
+
+    filter_coeff = list of str
+        By default, the following filter coefficients are checked:
+
+            ``filter_coeff = ['j0', 'j1', 'sin', 'cos']``
+
+        This accounts for the standard Hankel and Fourier DLF in CSEM
+        modelling. However, additional coefficient names can be provided via
+        this parameter (in list format).
+
+    """
+
+    def __init__(self, name, savename=None, filter_coeff=None):
         r"""Add filter name."""
         self.name = name
         if savename is None:
             self.savename = name
         else:
             self.savename = savename
+
+        # Define coefficient names.
+        self.filter_coeff = ['j0', 'j1', 'sin', 'cos']
+        if filter_coeff is not None:  # Additional, user provided.
+            self.filter_coeff.extend(filter_coeff)
 
     def tofile(self, path='filters'):
         r"""Save filter values to ascii-files.
@@ -107,7 +134,7 @@ class DigitalFilter:
             self.base.tofile(f, sep="\n")
 
         # Save filter coefficients
-        for val in ['j0', 'j1', 'sin', 'cos']:
+        for val in self.filter_coeff:
             if hasattr(self, val):
                 attrfile = os.path.join(path, name + '_' + val + '.txt')
                 with open(attrfile, 'w') as f:
@@ -147,7 +174,7 @@ class DigitalFilter:
             self.base = np.fromfile(f, sep="\n")
 
         # Get filter coefficients
-        for val in ['j0', 'j1', 'sin', 'cos']:
+        for val in self.filter_coeff:
             attrfile = os.path.join(path, name + '_' + val + '.txt')
             if os.path.isfile(attrfile):
                 with open(attrfile, 'r') as f:
@@ -160,12 +187,12 @@ class DigitalFilter:
 # 1. Hankel DLF
 
 def kong_61_2007():
-    r"""Kong 61 pt Hankel filter, as published in [Kong_2007]_.
+    r"""Kong 61 pt Hankel filter, as published in [Kong07]_.
 
     Taken from file ``FilterModules.f90`` provided with 1DCSEM_.
 
     License: `Apache License, Version 2.0,
-    <http://www.apache.org/licenses/LICENSE-2.0>`_.
+    <https://www.apache.org/licenses/LICENSE-2.0>`_.
 
     """
 
@@ -276,12 +303,12 @@ def kong_61_2007():
 
 
 def kong_241_2007():
-    r"""Kong 241 pt Hankel filter, as published in [Kong_2007]_.
+    r"""Kong 241 pt Hankel filter, as published in [Kong07]_.
 
     Taken from file ``FilterModules.f90`` provided with 1DCSEM_.
 
     License: `Apache License, Version 2.0,
-    <http://www.apache.org/licenses/LICENSE-2.0>`_.
+    <https://www.apache.org/licenses/LICENSE-2.0>`_.
 
     """
 
@@ -662,12 +689,12 @@ def kong_241_2007():
 
 
 def key_101_2009():
-    r"""Key 101 pt Hankel filter, as published in [Key_2009]_.
+    r"""Key 101 pt Hankel filter, as published in [Key09]_.
 
     Taken from file ``FilterModules.f90`` provided with 1DCSEM_.
 
     License: `Apache License, Version 2.0,
-    <http://www.apache.org/licenses/LICENSE-2.0>`_.
+    <https://www.apache.org/licenses/LICENSE-2.0>`_.
 
     """
 
@@ -787,12 +814,12 @@ def key_101_2009():
 
 
 def key_201_2009():
-    r"""Key 201 pt Hankel filter, as published in [Key_2009]_.
+    r"""Key 201 pt Hankel filter, as published in [Key09]_.
 
     Taken from file ``FilterModules.f90`` provided with 1DCSEM_.
 
     License: `Apache License, Version 2.0,
-    <http://www.apache.org/licenses/LICENSE-2.0>`_.
+    <https://www.apache.org/licenses/LICENSE-2.0>`_.
 
     """
 
@@ -1011,12 +1038,12 @@ def key_201_2009():
 
 
 def key_401_2009():
-    r"""Key 401 pt Hankel filter, as published in [Key_2009]_.
+    r"""Key 401 pt Hankel filter, as published in [Key09]_.
 
     Taken from file ``FilterModules.f90`` provided with 1DCSEM_.
 
     License: `Apache License, Version 2.0,
-    <http://www.apache.org/licenses/LICENSE-2.0>`_.
+    <https://www.apache.org/licenses/LICENSE-2.0>`_.
 
     """
 
@@ -1435,11 +1462,11 @@ def key_401_2009():
 
 
 def anderson_801_1982():
-    r"""Anderson 801 pt Hankel filter, as published in [Anderson_1982]_.
+    r"""Anderson 801 pt Hankel filter, as published in [Ande82]_.
 
     Taken from file ``wa801Hankel.txt`` provided with SEG-2012-003_.
 
-    License: http://software.seg.org/disclaimer.txt.
+    License: https://software.seg.org/disclaimer.txt.
 
     """
 
@@ -2527,11 +2554,11 @@ def anderson_801_1982():
 
 
 def key_51_2012():
-    r"""Key 51 pt Hankel filter, as published in [Key_2012]_.
+    r"""Key 51 pt Hankel filter, as published in [Key12]_.
 
     Taken from file ``kk51Hankel.txt`` provided with SEG-2012-003_.
 
-    License: http://software.seg.org/disclaimer.txt.
+    License: https://software.seg.org/disclaimer.txt.
 
     """
 
@@ -2619,11 +2646,11 @@ def key_51_2012():
 
 
 def key_101_2012():
-    r"""Key 101 pt Hankel filter, as published in [Key_2012]_.
+    r"""Key 101 pt Hankel filter, as published in [Key12]_.
 
     Taken from file ``kk101Hankel.txt`` provided with SEG-2012-003_.
 
-    License: http://software.seg.org/disclaimer.txt.
+    License: https://software.seg.org/disclaimer.txt.
 
     """
 
@@ -2777,11 +2804,11 @@ def key_101_2012():
 
 
 def key_201_2012():
-    r"""Key 201 pt Hankel filter, as published in [Key_2012]_.
+    r"""Key 201 pt Hankel filter, as published in [Key12]_.
 
     Taken from file ``kk201Hankel.txt`` provided with SEG-2012-003_.
 
-    License: http://software.seg.org/disclaimer.txt.
+    License: https://software.seg.org/disclaimer.txt.
 
     """
 
@@ -3075,7 +3102,7 @@ def wer_201_2018():
     https://github.com/empymod/article-fdesign.
 
     License: `Apache License, Version 2.0,
-    <http://www.apache.org/licenses/LICENSE-2.0>`_.
+    <https://www.apache.org/licenses/LICENSE-2.0>`_.
 
     """
 
@@ -3399,12 +3426,12 @@ def wer_201_2018():
 
 
 def key_81_CosSin_2009():
-    r"""Key 81 pt CosSin filter, as published in [Key_2009]_.
+    r"""Key 81 pt CosSin filter, as published in [Key09]_.
 
     Taken from file ``FilterModules.f90`` provided with 1DCSEM_.
 
     License: `Apache License, Version 2.0,
-    <http://www.apache.org/licenses/LICENSE-2.0>`_.
+    <https://www.apache.org/licenses/LICENSE-2.0>`_.
 
     """
 
@@ -3505,12 +3532,12 @@ def key_81_CosSin_2009():
 
 
 def key_241_CosSin_2009():
-    r"""Key 241 pt CosSin filter, as published in [Key_2009]_.
+    r"""Key 241 pt CosSin filter, as published in [Key09]_.
 
     Taken from file ``FilterModules.f90`` provided with 1DCSEM_.
 
     License: `Apache License, Version 2.0,
-    <http://www.apache.org/licenses/LICENSE-2.0>`_.
+    <https://www.apache.org/licenses/LICENSE-2.0>`_.
 
     """
 
@@ -3771,12 +3798,12 @@ def key_241_CosSin_2009():
 
 
 def key_601_CosSin_2009():
-    r"""Key 601 pt CosSin filter, as published in [Key_2009]_.
+    r"""Key 601 pt CosSin filter, as published in [Key09]_.
 
     Taken from file ``FilterModules.f90`` provided with 1DCSEM_.
 
     License: `Apache License, Version 2.0,
-    <http://www.apache.org/licenses/LICENSE-2.0>`_.
+    <https://www.apache.org/licenses/LICENSE-2.0>`_.
 
     """
 
@@ -4397,11 +4424,11 @@ def key_601_CosSin_2009():
 
 
 def key_101_CosSin_2012():
-    r"""Key 101 pt CosSin filter, as published in [Key_2012]_.
+    r"""Key 101 pt CosSin filter, as published in [Key12]_.
 
     Taken from file ``kk101CosSin.txt`` provided with SEG-2012-003_.
 
-    License: http://software.seg.org/disclaimer.txt.
+    License: https://software.seg.org/disclaimer.txt.
 
     """
 
@@ -4558,11 +4585,11 @@ def key_101_CosSin_2012():
 
 
 def key_201_CosSin_2012():
-    r"""Key 201 pt CosSin filter, as published in [Key_2012]_.
+    r"""Key 201 pt CosSin filter, as published in [Key12]_.
 
     Taken from file ``kk201CosSin.txt`` provided with SEG-2012-003_.
 
-    License: http://software.seg.org/disclaimer.txt.
+    License: https://software.seg.org/disclaimer.txt.
 
     """
 

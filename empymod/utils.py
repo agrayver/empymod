@@ -12,7 +12,7 @@ This module consists of four groups of functions:
    3. Internal utilities
 
 """
-# Copyright 2016-2019 Dieter Werthmüller
+# Copyright 2016-2019 The empymod Developers.
 #
 # This file is part of empymod.
 #
@@ -20,7 +20,7 @@ This module consists of four groups of functions:
 # use this file except in compliance with the License.  You may obtain a copy
 # of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -36,6 +36,14 @@ from scipy import special
 from datetime import timedelta
 from timeit import default_timer
 
+# scooby is a soft dependency for empymod
+try:
+    from scooby import Report as ScoobyReport
+except ImportError:
+    class ScoobyReport:
+        def __init__(self, additional, core, optional, ncol, text_width, sort):
+            print("\n* WARNING :: `empymod.Report` requires `scooby`."
+                  "\n             Install it via `pip install scooby`.\n")
 
 # Optional imports
 try:
@@ -51,7 +59,7 @@ except ImportError:
     numexpr_msg += "`opt=='parallel'` has no effect."
 
 # Relative imports
-from . import filters, transform
+from empymod import filters, transform
 
 
 __all__ = ['EMArray', 'check_time_only', 'check_time', 'check_model',
@@ -59,7 +67,7 @@ __all__ = ['EMArray', 'check_time_only', 'check_time', 'check_model',
            'check_bipole', 'check_ab', 'check_solution', 'get_abs',
            'get_geo_fact', 'get_azm_dip', 'get_off_ang', 'get_layer_nr',
            'printstartfinish', 'conv_warning', 'set_minimum', 'get_minimum',
-           'spline_backwards_hankel']
+           'spline_backwards_hankel', 'Report', 'Versions', 'versions']
 
 # 0. General settings
 
@@ -82,15 +90,8 @@ class EMArray(np.ndarray):
 
     Parameters
     ----------
-    realpart : array
-        1. Real part of input, if input is real or complex.
-        2. Imaginary part of input, if input is pure imaginary.
-        3. Complex input.
-
-        In cases 2 and 3, ``imagpart`` must be None.
-
-    imagpart: array, optional
-        Imaginary part of input. Defaults to None.
+    data : array
+        Data to which to add ``.amp`` and ``.pha`` attributes.
 
     Attributes
     ----------
@@ -99,14 +100,14 @@ class EMArray(np.ndarray):
 
     pha : ndarray
         Phase of the input data, in degrees, lag-defined (increasing with
-        increasing offset.) To get lead-defined phases, multiply ``imagpart``
-        by -1 before passing through this function.
+        increasing offset). To get lead-defined phases, provide
+        ``data.conjugate()``.
 
     Examples
     --------
     >>> import numpy as np
     >>> from empymod.utils import EMArray
-    >>> emvalues = EMArray(np.array([1,2,3]), np.array([1, 0, -1]))
+    >>> emvalues = EMArray(np.array([1,2,3])+1j*np.array([1, 0, -1]))
     >>> print('Amplitude : ', emvalues.amp)
     Amplitude :  [ 1.41421356  2.          3.16227766]
     >>> print('Phase     : ', emvalues.pha)
@@ -114,25 +115,24 @@ class EMArray(np.ndarray):
 
     """
 
-    def __new__(cls, realpart, imagpart=None):
+    def __new__(cls, data, backwards_comp=None):
         r"""Create a new EMArray."""
+        if np.any(backwards_comp):  # Delete for v2.0.0
+            data = np.asarray(data) + 1j*np.asarray(backwards_comp)
+        return np.asarray(data).view(cls)
 
-        # Create complex obj
-        if np.any(imagpart):
-            obj = np.real(realpart) + 1j*np.real(imagpart)
-        else:
-            obj = np.asarray(realpart, dtype=complex)
+    @property
+    def amp(self):
+        """Make amplitude an attribute."""
+        return np.abs(self.view())
 
-        # Ensure its at least a 1D-Array, view cls
-        obj = np.atleast_1d(obj).view(cls)
-
-        # Store amplitude
-        obj.amp = np.abs(obj)
-
-        # Calculate phase, unwrap it, transform to degrees
-        obj.pha = np.rad2deg(np.unwrap(np.angle(obj.real + 1j*obj.imag)))
-
-        return obj
+    @property
+    def pha(self):
+        """Make phase an attribute (unwrapped and in degrees."""
+        ang = np.angle(self.view())
+        if ang.size > 1:
+            ang = np.unwrap(ang)
+        return 180*ang/np.pi
 
 
 # 2. Input parameter checks for modelling
@@ -417,21 +417,39 @@ def check_frequency(freq, res, aniso, epermH, epermV, mpermH, mpermV, verb):
     # Check frequency
     freq = _check_var(freq, float, 1, 'freq')
 
+    # As soon as at least one freq >0, we assume frequencies. Only if ALL are
+    # below 0 we assume Laplace and take the negative of it.
+    if np.any(freq > 0):
+        laplace = False
+        text_min = "Frequencies"
+        text_verb = "   frequency"
+    else:
+        laplace = True
+        freq = -freq
+        text_min = "Laplace val"
+        text_verb = "   s-value  "
+
     # Minimum frequency to avoid division by zero at freq = 0 Hz.
     # => min_freq can be set with utils.set_min
-    freq = _check_min(freq, _min_freq, 'Frequencies', 'Hz', verb)
+    freq = _check_min(freq, _min_freq, text_min, "Hz", verb)
     if verb > 2:
-        _prnt_min_max_val(freq, "   frequency  [Hz] : ", verb)
+        _prnt_min_max_val(freq, text_verb+"  [Hz] : ", verb)
+
+    # Define Laplace parameter sval.
+    if laplace:
+        sval = freq
+    else:
+        sval = 2j*np.pi*freq
 
     # Calculate eta and zeta (horizontal and vertical)
     c = 299792458              # Speed of light m/s
     mu_0 = 4e-7*np.pi          # Magn. permeability of free space [H/m]
     epsilon_0 = 1./(mu_0*c*c)  # Elec. permittivity of free space [F/m]
 
-    etaH = 1/res + np.outer(2j*np.pi*freq, epermH*epsilon_0)
-    etaV = 1/(res*aniso*aniso) + np.outer(2j*np.pi*freq, epermV*epsilon_0)
-    zetaH = np.outer(2j*np.pi*freq, mpermH*mu_0)
-    zetaV = np.outer(2j*np.pi*freq, mpermV*mu_0)
+    etaH = 1/res + np.outer(sval, epermH*epsilon_0)
+    etaV = 1/(res*aniso*aniso) + np.outer(sval, epermV*epsilon_0)
+    zetaH = np.outer(sval, mpermH*mu_0)
+    zetaV = np.outer(sval, mpermV*mu_0)
 
     return freq, etaH, etaV, zetaH, zetaV
 
@@ -1000,9 +1018,8 @@ def check_time(time, signal, ft, ftarg, verb):
                 print(pstr + "Standard")
 
         # Get required frequencies
-        # (multiply time by 2Pi, as calculation is done in angular frequencies)
-        freq, _ = transform.get_spline_values(ftarg[0], 2*np.pi*time, ftarg[1])
-        freq = np.squeeze(freq)
+        omega, _ = transform.get_spline_values(ftarg[0], time, ftarg[1])
+        freq = np.squeeze(omega/2/np.pi)
 
         # Rename ft
         ft = 'ffht'
@@ -1650,7 +1667,7 @@ def get_azm_dip(inp, iz, ninpz, intpts, isdipole, strength, name, verb):
         # If dipole, g_w are ones
         g_w = np.ones(tinp[0].size)
 
-        # If dipole, inp_w are once, unless strength > 0
+        # If dipole, inp_w are ones, unless strength > 0
         inp_w = np.ones(tinp[0].size)
         if name == 'src' and strength > 0:
             inp_w *= strength
@@ -1973,3 +1990,86 @@ def spline_backwards_hankel(ht, htarg, opt):
                     htarg['pts_per_dec'] = 80  # Splined QWE; old default value
 
     return htarg, opt
+
+
+# 6. Report
+class Report(ScoobyReport):
+    r"""Print date, time, and version information.
+
+    Use ``scooby`` to print date, time, and package version information in any
+    environment (Jupyter notebook, IPython console, Python console, QT
+    console), either as html-table (notebook) or as plain text (anywhere).
+
+    Always shown are the OS, number of CPU(s), ``numpy``, ``scipy``,
+    ``empymod``, ``sys.version``, and time/date.
+
+    Additionally shown are, if they can be imported, ``numexpr``, ``IPython``,
+    and ``matplotlib``. It also shows MKL information, if available.
+
+    All modules provided in ``add_pckg`` are also shown.
+
+
+    Parameters
+    ----------
+    add_pckg : packages, optional
+        Package or list of packages to add to output information (must be
+        imported beforehand).
+
+    ncol : int, optional
+        Number of package-columns in html table (no effect in text-version);
+        Defaults to 3.
+
+    text_width : int, optional
+        The text width for non-HTML display modes
+
+    sort : bool, optional
+        Sort the packages when the report is shown
+
+
+    NOTE
+    ----
+
+    The package ``scooby`` has to be installed in order to use ``Report``:
+    ``pip install scooby``.
+
+
+    Examples
+    --------
+    >>> import pytest
+    >>> import dateutil
+    >>> from emg3d import Report
+    >>> Report()                            # Default values
+    >>> Report(pytest)                      # Provide additional package
+    >>> Report([pytest, dateutil], ncol=5)  # Set nr of columns
+
+    """
+
+    def __init__(self, add_pckg=None, ncol=3, text_width=80, sort=False):
+        """Initiate a scooby.Report instance."""
+
+        # Mandatory packages.
+        core = ['numpy', 'scipy', 'empymod']
+
+        # Optional packages.
+        optional = ['numexpr', 'IPython', 'matplotlib']
+
+        super().__init__(additional=add_pckg, core=core, optional=optional,
+                         ncol=ncol, text_width=text_width, sort=sort)
+
+
+class Versions(Report):
+    r"""New name is `Report`, here for backwards compatibility."""
+    mesg = ("\n    Class `Versions` is deprecated and will " +
+            "be removed; use class `Report` instead.")
+    warnings.warn(mesg, DeprecationWarning)
+
+    def __init__(self, add_pckg=None, ncol=3):
+        super().__init__(add_pckg, ncol)
+
+
+def versions(mode=None, add_pckg=None, ncol=4):
+    r"""Old func-way of class `Report`, here for backwards compatibility."""
+    mesg = ("\n    Func `versions` is deprecated and will " +
+            "be removed; use class `Report` instead.")
+    warnings.warn(mesg, DeprecationWarning)
+    return Report(add_pckg, ncol)

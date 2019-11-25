@@ -10,11 +10,14 @@ your own, problem-specific modelling routine!
 Principal routines:
     - ``bipole``
     - ``dipole``
+    - ``loop``
 
 The main routine is ``bipole``, which can model bipole source(s) and bipole
 receiver(s) of arbitrary direction, for electric or magnetic sources and
 receivers, both in frequency and in time. A subset of ``bipole`` is ``dipole``,
 which models infinitesimal small dipoles along the principal axes x, y, and z.
+The third routine, ``loop``, can be used if the source or the receivers are
+loops instead of dipoles.
 
 Further routines are:
 
@@ -34,7 +37,7 @@ The modelling routines make use of the following two core routines:
     - ``tem``: Carry out the Fourier transform to time domain after ``fem``.
 
 """
-# Copyright 2016-2019 Dieter Werthmüller
+# Copyright 2016-2019 The empymod Developers.
 #
 # This file is part of empymod.
 #
@@ -42,7 +45,7 @@ The modelling routines make use of the following two core routines:
 # use this file except in compliance with the License.  You may obtain a copy
 # of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -54,15 +57,16 @@ The modelling routines make use of the following two core routines:
 import warnings
 import numpy as np
 
-from . import kernel, transform
-from .utils import (check_time, check_time_only, check_model, check_frequency,
-                    check_hankel, check_opt, check_dipole, check_bipole,
-                    check_ab, check_solution, get_abs, get_geo_fact,
-                    get_azm_dip, get_off_ang, get_layer_nr, printstartfinish,
-                    conv_warning, spline_backwards_hankel)
+from empymod import kernel, transform
+from empymod.utils import (
+        check_time, check_time_only, check_model, check_frequency,
+        check_hankel, check_opt, check_dipole, check_bipole, check_ab,
+        check_solution, get_abs, get_geo_fact, get_azm_dip, get_off_ang,
+        get_layer_nr, printstartfinish, conv_warning, spline_backwards_hankel,
+        EMArray)
 
-__all__ = ['bipole', 'dipole', 'analytical', 'gpr', 'dipole_k', 'fem', 'tem',
-           'wavenumber']
+__all__ = ['bipole', 'dipole', 'loop', 'analytical', 'gpr', 'dipole_k', 'fem',
+           'tem', 'wavenumber']
 
 
 def bipole(src, rec, depth, res, freqtime, signal=None, aniso=None,
@@ -70,19 +74,19 @@ def bipole(src, rec, depth, res, freqtime, signal=None, aniso=None,
            srcpts=1, mrec=False, recpts=1, strength=0, xdirect=False,
            ht='fht', htarg=None, ft='sin', ftarg=None, opt=None, loop=None,
            verb=2):
-    r"""Return the electromagnetic field due to an electromagnetic source.
+    r"""Return EM fields due to arbitrary rotated, finite length EM dipoles.
 
     Calculate the electromagnetic frequency- or time-domain field due to
-    arbitrary finite electric or magnetic bipole sources, measured by arbitrary
-    finite electric or magnetic bipole receivers. By default, the
-    electromagnetic response is normalized to to source and receiver of 1 m
-    length, and source strength of 1 A.
+    arbitrary rotated, finite electric or magnetic bipole sources, measured by
+    arbitrary rotated, finite electric or magnetic bipole receivers. By
+    default, the electromagnetic response is normalized to source and receiver
+    of 1 m length, and source strength of 1 A.
 
 
     See Also
     --------
-    fem : Electromagnetic frequency-domain response.
-    tem : Electromagnetic time-domain response.
+    dipole : EM fields due to infinitesimal small EM dipoles.
+    loop : EM fields due to a magnetic source loop.
 
 
     Parameters
@@ -332,23 +336,15 @@ def bipole(src, rec, depth, res, freqtime, signal=None, aniso=None,
 
     Returns
     -------
-    EM : ndarray, (nfreq, nrec, nsrc)
+    EM : EMAarray, (nfreqtime, nrec, nsrc)
         Frequency- or time-domain EM field (depending on ``signal``):
             - If rec is electric, returns E [V/m].
-            - If rec is magnetic, returns B [T] (not H [A/m]!).
+            - If rec is magnetic, returns H [A/m].
 
-        However, source and receiver are normalised (unless strength != 0). So
-        for instance in the electric case the source strength is 1 A and its
-        length is 1 m. So the electric field could also be written as
-        [V/(A.m2)].
+        EMArray is a subclassed ndarray with ``.pha`` and ``.amp`` attributes
+        (only relevant for frequency-domain data).
 
-        In the magnetic case the source strength is given by
-        :math:`i\omega\mu_0 A I^e`, where A is the loop area (m2), and
-        :math:`I^e` the electric source strength. For the normalized magnetic
-        source :math:`A=1m^2` and :math:`I^e=1 Ampere`. A magnetic source is
-        therefore frequency dependent.
-
-        The shape of EM is (nfreq, nrec, nsrc). However, single dimensions
+        The shape of EM is (nfreqtime, nrec, nsrc). However, single dimensions
         are removed.
 
 
@@ -358,7 +354,7 @@ def bipole(src, rec, depth, res, freqtime, signal=None, aniso=None,
     >>> from empymod import bipole
     >>> # x-directed bipole source: x0, x1, y0, y1, z0, z1
     >>> src = [-50, 50, 0, 0, 100, 100]
-    >>> # x-directed dipole source-array: x, y, z, azimuth, dip
+    >>> # x-directed dipole receiver-array: x, y, z, azimuth, dip
     >>> rec = [np.arange(1, 11)*500, np.zeros(10), 200, 0, 0]
     >>> # layer boundaries
     >>> depth = [0, 300, 1000, 1050]
@@ -367,7 +363,7 @@ def bipole(src, rec, depth, res, freqtime, signal=None, aniso=None,
     >>> # Frequency
     >>> freq = 1
     >>> # Calculate electric field due to an electric source at 1 Hz.
-    >>> # [msrc = mrec = True (default)]
+    >>> # [msrc = mrec = False (default)]
     >>> EMfield = bipole(src, rec, depth, res, freq, verb=4)
     :: empymod START  ::
     ~
@@ -457,7 +453,7 @@ def bipole(src, rec, depth, res, freqtime, signal=None, aniso=None,
     # === 3. EM-FIELD CALCULATION ============
 
     # Pre-allocate output EM array
-    EM = np.zeros((freq.size, nrec*nsrc), dtype=complex)
+    EM = np.zeros((freq.size, nrec*nsrc), dtype=etaH.dtype)
 
     # Initialize kernel count, conv (only for QWE)
     # (how many times the wavenumber-domain kernel was calld)
@@ -490,7 +486,7 @@ def bipole(src, rec, depth, res, freqtime, signal=None, aniso=None,
             ab_calc = get_abs(msrc, mrec, srcazm, srcdip, recazm, recdip, verb)
 
             # Pre-allocate temporary source-EM array for integration loop
-            sEM = np.zeros((freq.size, isrz), dtype=complex)
+            sEM = np.zeros((freq.size, isrz), dtype=etaH.dtype)
 
             for isg in range(srcpts):  # Loop over src integration points
 
@@ -502,7 +498,7 @@ def bipole(src, rec, depth, res, freqtime, signal=None, aniso=None,
                 lsrc, zsrc = get_layer_nr(tisrc, depth)
 
                 # Pre-allocate temporary receiver EM arrays for integr. loop
-                rEM = np.zeros((freq.size, isrz), dtype=complex)
+                rEM = np.zeros((freq.size, isrz), dtype=etaH.dtype)
 
                 for irg in range(recpts):  # Loop over rec integration pts
                     # Note, if source or receiver is a bipole, but horizontal
@@ -526,7 +522,7 @@ def bipole(src, rec, depth, res, freqtime, signal=None, aniso=None,
                             loop_off, conv)
 
                     # Pre-allocate temporary EM array for ab-loop
-                    abEM = np.zeros((freq.size, isrz), dtype=complex)
+                    abEM = np.zeros((freq.size, isrz), dtype=etaH.dtype)
 
                     for iab in ab_calc:  # Loop over required ab's
 
@@ -587,14 +583,14 @@ def bipole(src, rec, depth, res, freqtime, signal=None, aniso=None,
     # === 4.  FINISHED ============
     printstartfinish(verb, t0, kcount)
 
-    return EM
+    return EMArray(EM)
 
 
 def dipole(src, rec, depth, res, freqtime, signal=None, ab=11, aniso=None,
            epermH=None, epermV=None, mpermH=None, mpermV=None, xdirect=False,
            ht='fht', htarg=None, ft='sin', ftarg=None, opt=None, loop=None,
            verb=2):
-    r"""Return the electromagnetic field due to a dipole source.
+    r"""Return EM fields due to infinitesimal small EM dipoles.
 
     Calculate the electromagnetic frequency- or time-domain field due to
     infinitesimal small electric or magnetic dipole source(s), measured by
@@ -614,9 +610,8 @@ def dipole(src, rec, depth, res, freqtime, signal=None, ab=11, aniso=None,
 
     See Also
     --------
-    bipole : Electromagnetic field due to an electromagnetic source.
-    fem : Electromagnetic frequency-domain response.
-    tem : Electromagnetic time-domain response.
+    bipole : EM fields due to arbitrary rotated, finite length EM dipoles.
+    loop : EM fields due to a magnetic source loop.
 
 
     Parameters
@@ -850,16 +845,15 @@ def dipole(src, rec, depth, res, freqtime, signal=None, ab=11, aniso=None,
 
     Returns
     -------
-    EM : ndarray, (nfreq, nrec, nsrc)
+    EM : EMArray, (nfreqtime, nrec, nsrc)
         Frequency- or time-domain EM field (depending on ``signal``):
             - If rec is electric, returns E [V/m].
-            - If rec is magnetic, returns B [T] (not H [A/m]!).
+            - If rec is magnetic, returns H [A/m].
 
-        However, source and receiver are normalised. So for instance in the
-        electric case the source strength is 1 A and its length is 1 m. So the
-        electric field could also be written as [V/(A.m2)].
+        EMArray is a subclassed ndarray with ``.pha`` and ``.amp`` attributes
+        (only relevant for frequency-domain data).
 
-        The shape of EM is (nfreq, nrec, nsrc). However, single dimensions
+        The shape of EM is (nfreqtime, nrec, nsrc). However, single dimensions
         are removed.
 
 
@@ -957,13 +951,556 @@ def dipole(src, rec, depth, res, freqtime, signal=None, ab=11, aniso=None,
     # === 4.  FINISHED ============
     printstartfinish(verb, t0, kcount)
 
-    return EM
+    return EMArray(EM)
+
+
+def loop(src, rec, depth, res, freqtime, signal=None, aniso=None, epermH=None,
+         epermV=None, mpermH=None, mpermV=None, mrec=True, recpts=1,
+         strength=0, xdirect=False, ht='fht', htarg=None, ft='sin', ftarg=None,
+         opt=None, loop=None, verb=2):
+    r"""Return EM fields due to a magnetic source loop.
+
+    Calculate the electromagnetic frequency- or time-domain field due to
+    an arbitrary rotated, magnetic source consisting of an electric loop,
+    measured by arbitrary rotated, finite electric or magnetic bipole
+    receivers or arbitrary rotated magnetic receivers consisting of electric
+    loops. By default, the electromagnetic response is normalized to source
+    loop area of 1 m2 and receiver length or area of 1 m or 1 m2, respectively,
+    and source strength of 1 A.
+
+    A magnetic dipole, as used in ``dipole`` and ``bipole``, has a moment of
+    :math:`I^m ds`. However, if the magnetic dipole is generated by an
+    electric-wire loop, this changes to :math:`I^m = i\omega\mu A I^e`, where A
+    is the area of the loop. The same factor :math:`i\omega\mu A`, applies to
+    the receiver, if it consists of an electric-wire loop.
+
+    The current implementation only handles loop sources and receivers in
+    layers where :math:`\mu_r^h=\mu_r^v`; the horizontal magnetic permeability
+    is used, and a warning is thrown if the vertical differs from the
+    horizontal one.
+
+    Note that the kernel internally still calculates dipole sources and
+    receivers, the moment is a factor that is multiplied in the frequency
+    domain. The logs will therefore still inform about bipoles and dipoles.
+
+
+    See Also
+    --------
+    dipole : EM fields due to infinitesimal small EM dipoles.
+    bipole : EM fields due to arbitrary rotated, finite length EM dipoles.
+
+
+    Parameters
+    ----------
+    src, rec : list of floats or arrays
+        Source and receiver coordinates (m):
+            - [x0, x1, y0, y1, z0, z1] (bipole of finite length)
+            - [x, y, z, azimuth, dip]  (dipole, infinitesimal small)
+
+        Dimensions:
+            - The coordinates x, y, and z (dipole) or x0, x1, y0, y1, z0, and
+              z1 (bipole) can be single values or arrays.
+            - The variables x and y (dipole) or x0, x1, y0, and y1 (bipole)
+              must have the same dimensions.
+            - The variable z (dipole) or z0 and z1 (bipole) must either be
+              single values or having the same dimension as the other
+              coordinates.
+            - The variables azimuth and dip must be single values. If they have
+              different angles, you have to use the bipole-method (with
+              recpts = 1, so it is calculated as dipoles). Note that srcpts is
+              fixed to 1, as the source is a loop.
+
+        Angles (coordinate system is left-handed, positive z down
+        (East-North-Depth):
+
+            - azimuth (°): horizontal deviation from x-axis, anti-clockwise.
+            - dip (°): vertical deviation from xy-plane downwards.
+
+        Sources or receivers placed on a layer interface are considered in the
+        upper layer.
+
+    depth : list
+        Absolute layer interfaces z (m); #depth = #res - 1
+        (excluding +/- infinity).
+
+    res : array_like
+        Horizontal resistivities rho_h (Ohm.m); #res = #depth + 1.
+
+        Alternatively, res can be a dictionary. See the main manual of empymod
+        too see how to exploit this hook to re-calculate etaH, etaV, zetaH, and
+        zetaV, which can be used to, for instance, use the Cole-Cole model for
+        IP.
+
+    freqtime : array_like
+        Frequencies f (Hz) if ``signal`` == None, else times t (s); (f, t > 0).
+
+    signal : {None, 0, 1, -1}, optional
+        Source signal, default is None:
+            - None: Frequency-domain response
+            - -1 : Switch-off time-domain response
+            - 0 : Impulse time-domain response
+            - +1 : Switch-on time-domain response
+
+    aniso : array_like, optional
+        Anisotropies lambda = sqrt(rho_v/rho_h) (-); #aniso = #res.
+        Defaults to ones.
+
+    epermH, epermV : array_like, optional
+        Relative horizontal/vertical electric permittivities
+        epsilon_h/epsilon_v (-);
+        #epermH = #epermV = #res. Default is ones.
+
+    mpermH, mpermV : array_like, optional
+        Relative horizontal/vertical magnetic permeabilities mu_h/mu_v (-);
+        #mpermH = #mpermV = #res. Default is ones.
+
+        Note that the relative horizontal and vertical magnetic permeabilities
+        in layers with loop sources or receivers will be set to 1.
+
+    mrec : boolean or string, optional
+        Receiver options; default is True:
+            - True: Magnetic dipole receiver;
+            - False: Electric dipole receiver;
+            - 'loop': Magnetic receiver consisting of an electric-wire loop.
+
+    recpts : int, optional
+        Number of integration points for bipole receiver, default is 1:
+            - recpts < 3  : bipole, but calculated as dipole at centre
+            - recpts >= 3 : bipole
+
+        Note that if `mrec='loop'`, `recpts` will be set to 1.
+
+    strength : float, optional
+        Source strength (A):
+          - If 0, output is normalized to source of 1 m2 area and receiver of 1
+            m length or 1 m2 area, and source strength of 1 A.
+          - If != 0, output is returned for given source strength and receiver
+            length (if `mrec!='loop'`).
+
+        The strength is simply a multiplication factor. It can also be used to
+        provide the source and receiver loop area, or also to multiply by
+        :math:\mu_0`, if you want the B-field instead of the H-field.
+
+        Default is 0.
+
+    xdirect : bool or None, optional
+        Direct field calculation (only if src and rec are in the same layer):
+          - If True, direct field is calculated analytically in the frequency
+            domain.
+          - If False, direct field is calculated in the wavenumber domain.
+          - If None, direct field is excluded from the calculation, and only
+            reflected fields are returned (secondary field).
+
+        Defaults to False.
+
+    ht : {'fht', 'qwe', 'quad'}, optional
+        Flag to choose either the *Digital Linear Filter* method (FHT, *Fast
+        Hankel Transform*), the *Quadrature-With-Extrapolation* (QWE), or a
+        simple *Quadrature* (QUAD) for the Hankel transform.  Defaults to
+        'fht'.
+
+    htarg : dict or list, optional
+        Depends on the value for ``ht``:
+            - If ``ht`` = 'fht': [fhtfilt, pts_per_dec]:
+
+                - fhtfilt: string of filter name in ``empymod.filters`` or
+                           the filter method itself.
+                           (default: ``empymod.filters.key_201_2009()``)
+                - pts_per_dec: points per decade; (default: 0)
+                    - If 0: Standard DLF.
+                    - If < 0: Lagged Convolution DLF.
+                    - If > 0: Splined DLF
+
+            - If ``ht`` = 'qwe': [rtol, atol, nquad, maxint, pts_per_dec,
+                                diff_quad, a, b, limit]:
+
+                - rtol: relative tolerance (default: 1e-12)
+                - atol: absolute tolerance (default: 1e-30)
+                - nquad: order of Gaussian quadrature (default: 51)
+                - maxint: maximum number of partial integral intervals
+                          (default: 40)
+                - pts_per_dec: points per decade; (default: 0)
+                    - If 0, no interpolation is used.
+                    - If > 0, interpolation is used.
+
+                - diff_quad: criteria when to swap to QUAD (only relevant if
+                  opt='spline') (default: 100)
+                - a: lower limit for QUAD (default: first interval from QWE)
+                - b: upper limit for QUAD (default: last interval from QWE)
+                - limit: limit for quad (default: maxint)
+
+            - If ``ht`` = 'quad': [atol, rtol, limit, lmin, lmax, pts_per_dec]:
+
+                - rtol: relative tolerance (default: 1e-12)
+                - atol: absolute tolerance (default: 1e-20)
+                - limit: An upper bound on the number of subintervals used in
+                  the adaptive algorithm (default: 500)
+                - lmin: Minimum wavenumber (default 1e-6)
+                - lmax: Maximum wavenumber (default 0.1)
+                - pts_per_dec: points per decade (default: 40)
+
+        The values can be provided as dict with the keywords, or as list.
+        However, if provided as list, you have to follow the order given above.
+        A few examples, assuming ``ht`` = ``qwe``:
+
+            - Only changing rtol:
+                {'rtol': 1e-4} or [1e-4] or 1e-4
+            - Changing rtol and nquad:
+                {'rtol': 1e-4, 'nquad': 101} or [1e-4, '', 101]
+            - Only changing diff_quad:
+                {'diffquad': 10} or ['', '', '', '', '', 10]
+
+    ft : {'sin', 'cos', 'qwe', 'fftlog', 'fft'}, optional
+        Only used if ``signal`` != None. Flag to choose either the Digital
+        Linear Filter method (Sine- or Cosine-Filter), the
+        Quadrature-With-Extrapolation (QWE), the FFTLog, or the FFT for the
+        Fourier transform.  Defaults to 'sin'.
+
+    ftarg : dict or list, optional
+        Only used if ``signal`` !=None. Depends on the value for ``ft``:
+            - If ``ft`` = 'sin' or 'cos': [fftfilt, pts_per_dec]:
+
+                - fftfilt: string of filter name in ``empymod.filters`` or
+                           the filter method itself.
+                           (Default: ``empymod.filters.key_201_CosSin_2012()``)
+                - pts_per_dec: points per decade; (default: -1)
+                    - If 0: Standard DLF.
+                    - If < 0: Lagged Convolution DLF.
+                    - If > 0: Splined DLF
+
+
+            - If ``ft`` = 'qwe': [rtol, atol, nquad, maxint, pts_per_dec]:
+
+                - rtol: relative tolerance (default: 1e-8)
+                - atol: absolute tolerance (default: 1e-20)
+                - nquad: order of Gaussian quadrature (default: 21)
+                - maxint: maximum number of partial integral intervals
+                          (default: 200)
+                - pts_per_dec: points per decade (default: 20)
+                - diff_quad: criteria when to swap to QUAD (default: 100)
+                - a: lower limit for QUAD (default: first interval from QWE)
+                - b: upper limit for QUAD (default: last interval from QWE)
+                - limit: limit for quad (default: maxint)
+
+            - If ``ft`` = 'fftlog': [pts_per_dec, add_dec, q]:
+
+                - pts_per_dec: sampels per decade (default: 10)
+                - add_dec: additional decades [left, right] (default: [-2, 1])
+                - q: exponent of power law bias (default: 0); -1 <= q <= 1
+
+            - If ``ft`` = 'fft': [dfreq, nfreq, ntot]:
+
+                - dfreq: Linear step-size of frequencies (default: 0.002)
+                - nfreq: Number of frequencies (default: 2048)
+                - ntot:  Total number for FFT; difference between nfreq and
+                         ntot is padded with zeroes. This number is ideally a
+                         power of 2, e.g. 2048 or 4096 (default: nfreq).
+                - pts_per_dec : points per decade (default: None)
+
+                Padding can sometimes improve the result, not always. The
+                default samples from 0.002 Hz - 4.096 Hz. If pts_per_dec is set
+                to an integer, calculated frequencies are logarithmically
+                spaced with the given number per decade, and then interpolated
+                to yield the required frequencies for the FFT.
+
+        The values can be provided as dict with the keywords, or as list.
+        However, if provided as list, you have to follow the order given above.
+        See ``htarg`` for a few examples.
+
+    opt : {None, 'parallel'}, optional
+        Optimization flag. Defaults to None:
+            - None: Normal case, no parallelization nor interpolation is used.
+            - If 'parallel', the package ``numexpr`` is used to evaluate the
+              most expensive statements. Always check if it actually improves
+              performance for a specific problem. It can speed up the
+              calculation for big arrays, but will most likely be slower for
+              small arrays. It will use all available cores for these specific
+              statements, which all contain ``Gamma`` in one way or another,
+              which has dimensions (#frequencies, #offsets, #layers, #lambdas),
+              therefore can grow pretty big. The module ``numexpr`` uses by
+              default all available cores up to a maximum of 8. You can change
+              this behaviour to your desired number of threads ``nthreads``
+              with ``numexpr.set_num_threads(nthreads)``.
+
+    loop : {None, 'freq', 'off'}, optional
+        Define if to calculate everything vectorized or if to loop over
+        frequencies ('freq') or over offsets ('off'), default is None. It
+        always loops over frequencies if ``ht = 'qwe'`` or if ``opt =
+        'spline'``. Calculating everything vectorized is fast for few offsets
+        OR for few frequencies. However, if you calculate many frequencies for
+        many offsets, it might be faster to loop over frequencies. Only
+        comparing the different versions will yield the answer for your
+        specific problem at hand!
+
+    verb : {0, 1, 2, 3, 4}, optional
+        Level of verbosity, default is 2:
+            - 0: Print nothing.
+            - 1: Print warnings.
+            - 2: Print additional runtime and kernel calls
+            - 3: Print additional start/stop, condensed parameter information.
+            - 4: Print additional full parameter information
+
+
+    Returns
+    -------
+    EM : EMArray, (nfreqtime, nrec, nsrc)
+        Frequency- or time-domain EM field (depending on ``signal``):
+            - If rec is electric, returns E [V/m].
+            - If rec is magnetic, returns H [A/m].
+
+        EMArray is a subclassed ndarray with ``.pha`` and ``.amp`` attributes
+        (only relevant for frequency-domain data).
+
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from empymod import loop
+    >>> # z-directed loop source: x, y, z, azimuth, dip
+    >>> src = [0, 0, 0, 0, 90]
+    >>> # z-directed magnetic dipole receiver-array: x, y, z, azimuth, dip
+    >>> rec = [np.arange(1, 11)*500, np.zeros(10), 200, 0, 90]
+    >>> # layer boundaries
+    >>> depth = [0, 300, 500]
+    >>> # layer resistivities
+    >>> res = [2e14, 10, 500, 10]
+    >>> # Frequency
+    >>> freq = 1
+    >>> # Calculate magnetic field due to a loop source at 1 Hz.
+    >>> # [mrec = True (default)]
+    >>> EMfield = loop(src, rec, depth, res, freq, verb=4)
+    :: empymod START  ::
+    ~
+       depth       [m] :  0 300 500
+       res     [Ohm.m] :  2E+14 10 500 10
+       aniso       [-] :  1 1 1 1
+       epermH      [-] :  1 1 1 1
+       epermV      [-] :  1 1 1 1
+       mpermH      [-] :  1 1 1 1
+       mpermV      [-] :  1 1 1 1
+       direct field    :  Calc. in wavenumber domain
+       frequency  [Hz] :  1
+       Hankel          :  DLF (Fast Hankel Transform)
+         > Filter      :  Key 201 (2009)
+         > DLF type    :  Standard
+       Kernel Opt.     :  None
+       Loop over       :  None (all vectorized)
+       Source(s)       :  1 dipole(s)
+         > x       [m] :  0
+         > y       [m] :  0
+         > z       [m] :  0
+         > azimuth [°] :  0
+         > dip     [°] :  90
+       Receiver(s)     :  10 dipole(s)
+         > x       [m] :  500 - 5000 : 10  [min-max; #]
+                       :  500 1000 1500 2000 2500 3000 3500 4000 4500 5000
+         > y       [m] :  0 - 0 : 10  [min-max; #]
+                       :  0 0 0 0 0 0 0 0 0 0
+         > z       [m] :  200
+         > azimuth [°] :  0
+         > dip     [°] :  90
+       Required ab's   :  33
+    ~
+    :: empymod END; runtime = 0:00:00.005025 :: 1 kernel call(s)
+
+    >>> print(EMfield)
+    [ -3.05449848e-10 -2.00374185e-11j  -7.12528991e-11 -5.37083268e-12j
+      -2.52076501e-11 -1.62732412e-12j  -1.18412295e-11 -8.99570998e-14j
+      -6.44054097e-12 +5.61150066e-13j  -3.77109625e-12 +7.89022722e-13j
+      -2.28484774e-12 +8.08897623e-13j  -1.40021365e-12 +7.32151174e-13j
+      -8.55487532e-13 +6.18402706e-13j  -5.15642408e-13 +4.99091919e-13j]
+
+    """
+
+    # === 1.  LET'S START ============
+    t0 = printstartfinish(verb)
+
+    # === 2.  CHECK INPUT ============
+
+    # Check times and Fourier Transform arguments and get required frequencies
+    if signal is None:
+        freq = freqtime
+    else:
+        time, freq, ft, ftarg = check_time(freqtime, signal, ft, ftarg, verb)
+
+    # Check layer parameters
+    model = check_model(depth, res, aniso, epermH, epermV, mpermH, mpermV,
+                        xdirect, verb)
+    depth, res, aniso, epermH, epermV, mpermH, mpermV, isfullspace = model
+
+    # Check frequency => get etaH, etaV, zetaH, and zetaV
+    frequency = check_frequency(freq, res, aniso, epermH, epermV, mpermH,
+                                mpermV, verb)
+    freq, etaH, etaV, zetaH, zetaV = frequency
+
+    # Update etaH/etaV and zetaH/zetaV according to user-provided model
+    if isinstance(res, dict) and 'func_eta' in res:
+        etaH, etaV = res['func_eta'](res, locals())
+    if isinstance(res, dict) and 'func_zeta' in res:
+        zetaH, zetaV = res['func_zeta'](res, locals())
+
+    # Check Hankel transform parameters
+    ht, htarg = check_hankel(ht, htarg, verb)
+
+    # Check optimization
+    use_ne_eval, loop_freq, loop_off = check_opt(opt, loop, ht, htarg, verb)
+
+    # Check src and rec, get flags if dipole or not
+    # nsrcz/nrecz are number of unique src/rec-pole depths
+    src, nsrc, nsrcz, srcdipole = check_bipole(src, 'src')
+    rec, nrec, nrecz, recdipole = check_bipole(rec, 'rec')
+
+    # Check if receiver is a loop too.
+    if mrec == 'loop':
+        rec_loop = True
+        mrec = True
+        recpts = 1  # If loop, there is no integration.
+    else:
+        rec_loop = False
+
+    # === 3. EM-FIELD CALCULATION ============
+
+    # Pre-allocate output EM array
+    EM = np.zeros((freq.size, nrec*nsrc), dtype=etaH.dtype)
+
+    # Initialize kernel count, conv (only for QWE)
+    # (how many times the wavenumber-domain kernel was calld)
+    kcount = 0
+    conv = True
+
+    # Define some indeces
+    isrc = int(nsrc/nsrcz)  # this is either 1 or nsrc
+    irec = int(nrec/nrecz)  # this is either 1 or nrec
+    isrz = int(isrc*irec)   # this is either 1, nsrc, nrec, or nsrc*nrec
+
+    # The kernel handles only 1 ab with one srcz-recz combination at once.
+    # Hence we have to loop over every different depth of src or rec, and
+    # over all required ab's.
+    for isz in range(nsrcz):  # Loop over source depths
+
+        # Get this source
+        srcazmdip = get_azm_dip(src, isz, nsrcz, 1, srcdipole, strength,
+                                'src', verb)
+        tsrc, srcazm, srcdip, _, _, src_w = srcazmdip
+
+        for irz in range(nrecz):  # Loop over receiver depths
+
+            # Get this receiver
+            recazmdip = get_azm_dip(rec, irz, nrecz, recpts, recdipole,
+                                    strength, 'rec', verb)
+            trec, recazm, recdip, recg_w, recpts, rec_w = recazmdip
+
+            # Get required ab's
+            ab_calc = get_abs(True, mrec, srcazm, srcdip, recazm, recdip, verb)
+
+            # Get layer number in which src resides
+            lsrc, zsrc = get_layer_nr(tsrc, depth)
+
+            # Check mu at source level.
+            if verb > 0 and mpermH[lsrc] != mpermV[lsrc]:
+                print('* WARNING :: `mpermH != mpermV` at source level, '
+                      'only `mpermH` considered for loop factor.')
+
+            # Pre-allocate temporary receiver EM arrays for integr. loop
+            rEM = np.zeros((freq.size, isrz), dtype=etaH.dtype)
+
+            for irg in range(recpts):  # Loop over rec integration pts
+                # Note, if source or receiver is a bipole, but horizontal
+                # (dip=0), then calculation could be sped up by not looping
+                # over the bipole elements, but calculate it all in one go.
+
+                # This integration receiver
+                tirec = [trec[0][irg::recpts], trec[1][irg::recpts],
+                         trec[2][irg]]
+
+                # Get src-rec offsets and angles
+                off, angle = get_off_ang(tsrc, tirec, isrc, irec, verb)
+
+                # Get layer number in which rec resides
+                lrec, zrec = get_layer_nr(tirec, depth)
+
+                # Check mu at receiver level.
+                if rec_loop and verb > 0 and mpermH[lrec] != mpermV[lrec]:
+                    print('* WARNING :: `mpermH != mpermV` at receiver level, '
+                          'only `mpermH` considered for loop factor.')
+
+                # Gather variables
+                finp = (off, angle, zsrc, zrec, lsrc, lrec, depth, freq,
+                        etaH, etaV, zetaH, zetaV, xdirect, isfullspace, ht,
+                        htarg, use_ne_eval, True, mrec, loop_freq,
+                        loop_off, conv)
+
+                # Pre-allocate temporary EM array for ab-loop
+                abEM = np.zeros((freq.size, isrz), dtype=etaH.dtype)
+
+                for iab in ab_calc:  # Loop over required ab's
+
+                    # Carry-out the frequency-domain calculation
+                    out = fem(iab, *finp)
+
+                    # Get geometrical scaling factor
+                    tfact = get_geo_fact(iab, srcazm, srcdip, recazm, recdip,
+                                         True, mrec)
+
+                    # Add field to EM with geometrical factor
+                    abEM += out[0]*np.squeeze(tfact)
+
+                    # Update kernel count
+                    kcount += out[1]
+
+                    # Update conv (QWE convergence)
+                    conv *= out[2]
+
+                # Add this receiver element, with weight from integration
+                rEM += abEM*recg_w[irg]
+
+            # Scale signal for src-strength and rec-lengths
+            src_rec_w = 1
+            if strength > 0:
+                src_rec_w *= np.repeat(src_w, irec)
+                src_rec_w *= np.tile(rec_w, isrc)
+            rEM *= src_rec_w
+
+            # Add this src-rec signal
+            if nrec == nrecz:
+                if nsrc == nsrcz:  # Case 1: Looped over each src and each rec
+                    EM[:, isz*nrec+irz:isz*nrec+irz+1] = rEM
+                else:              # Case 2: Looped over each rec
+                    EM[:, irz:nsrc*nrec:nrec] = rEM
+            else:
+                if nsrc == nsrcz:  # Case 3: Looped over each src
+                    EM[:, isz*nrec:nrec*(isz+1)] = rEM
+                else:              # Case 4: All in one go
+                    EM = rEM
+
+    # In case of QWE/QUAD, print Warning if not converged
+    conv_warning(conv, htarg, 'Hankel', verb)
+
+    # Multiplication with frequency-dependent loop factors.
+    EM *= zetaH[:, lsrc, None]
+    if rec_loop:
+        EM *= zetaH[:, lrec, None]
+
+    # Do f->t transform if required
+    if signal is not None:
+        EM, conv = tem(EM, EM[0, :], freq, time, signal, ft, ftarg)
+
+        # In case of QWE/QUAD, print Warning if not converged
+        conv_warning(conv, ftarg, 'Fourier', verb)
+
+    # Reshape for number of sources
+    EM = np.squeeze(EM.reshape((-1, nrec, nsrc), order='F'))
+
+    # === 4.  FINISHED ============
+    printstartfinish(verb, t0, kcount)
+
+    return EMArray(EM)
 
 
 def analytical(src, rec, res, freqtime, solution='fs', signal=None, ab=11,
                aniso=None, epermH=None, epermV=None, mpermH=None, mpermV=None,
                verb=2):
-    r"""Return the analytical full- or half-space solution.
+    r"""Return analytical full- or half-space solution.
 
     Calculate the electromagnetic frequency- or time-domain field due to
     infinitesimal small electric or magnetic dipole source(s), measured by
@@ -983,16 +1520,16 @@ def analytical(src, rec, res, freqtime, solution='fs', signal=None, ab=11,
 
     Included are:
       - Full fullspace solution (``solution='fs'``) for ee-, me-, em-,
-        mm-fields, only frequency domain, [Hunziker_et_al_2015]_.
+        mm-fields, only frequency domain, [HuTS15]_.
       - Diffusive fullspace solution (``solution='dfs'``) for ee-fields,
-        [Slob_et_al_2010]_.
+        [SlHM10]_.
       - Diffusive halfspace solution (``solution='dhs'``) for ee-fields,
-        [Slob_et_al_2010]_.
+        [SlHM10]_.
       - Diffusive direct- and reflected field and airwave
-        (``solution='dsplit'``) for ee-fields, [Slob_et_al_2010]_.
+        (``solution='dsplit'``) for ee-fields, [SlHM10]_.
       - Diffusive direct- and reflected field and airwave
         (``solution='dtetm'``) for ee-fields, split into TE and TM mode
-        [Slob_et_al_2010]_.
+        [SlHM10]_.
 
     Parameters
     ----------
@@ -1071,16 +1608,15 @@ def analytical(src, rec, res, freqtime, solution='fs', signal=None, ab=11,
 
     Returns
     -------
-    EM : ndarray, (nfreq, nrec, nsrc)
+    EM : EMArray, (nfreqtime, nrec, nsrc)
         Frequency- or time-domain EM field (depending on ``signal``):
             - If rec is electric, returns E [V/m].
-            - If rec is magnetic, returns B [T] (not H [A/m]!).
+            - If rec is magnetic, returns H [A/m].
 
-        However, source and receiver are normalised. So for instance in the
-        electric case the source strength is 1 A and its length is 1 m. So the
-        electric field could also be written as [V/(A.m2)].
+        EMArray is a subclassed ndarray with ``.pha`` and ``.amp`` attributes
+        (only relevant for frequency-domain data).
 
-        The shape of EM is (nfreq, nrec, nsrc). However, single dimensions
+        The shape of EM is (nfreqtime, nrec, nsrc). However, single dimensions
         are removed.
 
         If ``solution='dsplit'``, three ndarrays are returned: direct, reflect,
@@ -1123,7 +1659,7 @@ def analytical(src, rec, res, freqtime, solution='fs', signal=None, ab=11,
     # Check frequency => get etaH, etaV, zetaH, and zetaV
     frequency = check_frequency(freqtime, res, aniso, epermH, epermV, mpermH,
                                 mpermV, verb)
-    freqtime, etaH, etaV, zetaH, zetaV = frequency
+    freq, etaH, etaV, zetaH, zetaV = frequency
 
     # Update etaH/etaV and zetaH/zetaV according to user-provided model
     if isinstance(res, dict) and 'func_eta' in res:
@@ -1152,6 +1688,12 @@ def analytical(src, rec, res, freqtime, solution='fs', signal=None, ab=11,
     # === 3. EM-FIELD CALCULATION ============
 
     if solution[0] == 'd':
+        # To make it work with Laplace domain calculations.
+        if signal is None:
+            if np.any(freqtime > 0):
+                freqtime = 2j*np.pi*freq
+            else:
+                freqtime = freq
         EM = kernel.halfspace(off, angle, zsrc, zrec, etaH, etaV,
                               freqtime[:, None], ab_calc, signal, solution)
     else:
@@ -1162,7 +1704,7 @@ def analytical(src, rec, res, freqtime, solution='fs', signal=None, ab=11,
             # If <ab> = 36 (or 63), field is zero
             # In `bipole` and in `dipole`, this is taken care of in `fem`. Here
             # we have to take care of it separately
-            EM = np.zeros((freqtime.size*nrec*nsrc), dtype=complex)
+            EM = np.zeros((freq.size*nrec*nsrc), dtype=etaH.dtype)
 
     # Squeeze
     if solution[1:] == 'split':
@@ -1181,14 +1723,14 @@ def analytical(src, rec, res, freqtime, solution='fs', signal=None, ab=11,
     # === 4.  FINISHED ============
     printstartfinish(verb, t0)
 
-    return EM
+    return EMArray(EM)
 
 
 def gpr(src, rec, depth, res, freqtime, cf, gain=None, ab=11, aniso=None,
         epermH=None, epermV=None, mpermH=None, mpermV=None, xdirect=False,
         ht='quad', htarg=None, ft='fft', ftarg=None, opt=None, loop=None,
         verb=2):
-    r"""Return the Ground-Penetrating Radar signal.
+    r"""Return Ground-Penetrating Radar signal.
 
     THIS FUNCTION IS EXPERIMENTAL, USE WITH CAUTION.
 
@@ -1268,7 +1810,7 @@ def gpr(src, rec, depth, res, freqtime, cf, gain=None, ab=11, aniso=None,
 
 def dipole_k(src, rec, depth, res, freq, wavenumber, ab=11, aniso=None,
              epermH=None, epermV=None, mpermH=None, mpermV=None, verb=2):
-    r"""Return the electromagnetic wavenumber-domain field.
+    r"""Return electromagnetic wavenumber-domain field.
 
     Calculate the electromagnetic wavenumber-domain field due to infinitesimal
     small electric or magnetic dipole source(s), measured by infinitesimal
@@ -1279,10 +1821,9 @@ def dipole_k(src, rec, depth, res, freq, wavenumber, ab=11, aniso=None,
 
     See Also
     --------
-    dipole : Electromagnetic field due to an electromagnetic source (dipoles).
-    bipole : Electromagnetic field due to an electromagnetic source (bipoles).
-    fem : Electromagnetic frequency-domain response.
-    tem : Electromagnetic time-domain response.
+    dipole : EM fields due to infinitesimal small EM dipoles.
+    bipole : EM fields due to arbitrary rotated, finite length EM dipoles.
+    loop : EM fields due to a magnetic source loop.
 
 
     Parameters
@@ -1422,12 +1963,14 @@ def dipole_k(src, rec, depth, res, freq, wavenumber, ab=11, aniso=None,
     # Pre-allocate
     if off.size == 1 and np.ndim(wavenumber) == 2:
         PJ0 = np.zeros((freq.size, wavenumber.shape[0], wavenumber.shape[1]),
-                       dtype=complex)
+                       dtype=etaH.dtype)
         PJ1 = np.zeros((freq.size, wavenumber.shape[0], wavenumber.shape[1]),
-                       dtype=complex)
+                       dtype=etaH.dtype)
     else:
-        PJ0 = np.zeros((freq.size, off.size, wavenumber.size), dtype=complex)
-        PJ1 = np.zeros((freq.size, off.size, wavenumber.size), dtype=complex)
+        PJ0 = np.zeros((freq.size, off.size, wavenumber.size),
+                       dtype=etaH.dtype)
+        PJ1 = np.zeros((freq.size, off.size, wavenumber.size),
+                       dtype=etaH.dtype)
 
     # If <ab> = 36 (or 63), field is zero
     # In `bipole` and in `dipole`, this is taken care of in `fem`. Here we
@@ -1475,7 +2018,7 @@ def wavenumber(src, rec, depth, res, freq, wavenumber, ab=11, aniso=None,
 def fem(ab, off, angle, zsrc, zrec, lsrc, lrec, depth, freq, etaH, etaV, zetaH,
         zetaV, xdirect, isfullspace, ht, htarg, use_ne_eval, msrc, mrec,
         loop_freq, loop_off, conv=True):
-    r"""Return the electromagnetic frequency-domain response.
+    r"""Return electromagnetic frequency-domain response.
 
     This function is called from one of the above modelling routines. No
     input-check is carried out here. See the main description of :mod:`model`
@@ -1487,7 +2030,7 @@ def fem(ab, off, angle, zsrc, zrec, lsrc, lrec, depth, freq, etaH, etaV, zetaH,
 
     """
     # Preallocate array
-    fEM = np.zeros((freq.size, off.size), dtype=complex)
+    fEM = np.zeros((freq.size, off.size), dtype=etaH.dtype)
 
     # Initialize kernel count
     # (how many times the wavenumber-domain kernel was calld)
@@ -1511,20 +2054,22 @@ def fem(ab, off, angle, zsrc, zrec, lsrc, lrec, depth, freq, etaH, etaV, zetaH,
     else:
         xdir = xdirect
 
-    # Get angle dependent factors
-    factAng = kernel.angle_factor(angle, ab, msrc, mrec)
-
-    # Compute required lambdas for given hankel-filter-base
-    # This should be in utils, but this is a backwards-incompatible change.
-    # Move this to utils for version 2.0.
-    if ht == 'fht':
-        # htarg[0] = filter; htarg[1] = pts_per_dec
-        lambd, int_pts = transform.get_spline_values(htarg[0], off, htarg[1])
-        if not loop_off:
-            htarg = (htarg[0], htarg[1], lambd, int_pts)
-
     # If not full-space with xdirect calculate fEM-field
     if not isfullspace*xdir:
+
+        # Get angle dependent factors
+        factAng = kernel.angle_factor(angle, ab, msrc, mrec)
+
+        # Compute required lambdas for given hankel-filter-base
+        # This should be in utils, but this is a backwards-incompatible change.
+        # Move this to utils for version 2.0.
+        if ht == 'fht':
+            # htarg[0] = filter; htarg[1] = pts_per_dec
+            lambd, int_pts = transform.get_spline_values(
+                    htarg[0], off, htarg[1])
+            if not loop_off:
+                htarg = (htarg[0], htarg[1], lambd, int_pts)
+
         calc = getattr(transform, ht)
         if loop_freq:
 
@@ -1563,7 +2108,7 @@ def fem(ab, off, angle, zsrc, zrec, lsrc, lrec, depth, freq, etaH, etaV, zetaH,
 
 
 def tem(fEM, off, freq, time, signal, ft, ftarg, conv=True):
-    r"""Return the time-domain response of the frequency-domain response fEM.
+    r"""Return time-domain response of the frequency-domain response fEM.
 
     This function is called from one of the above modelling routines. No
     input-check is carried out here. See the main description of :mod:`model`

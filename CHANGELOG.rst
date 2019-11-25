@@ -1,8 +1,95 @@
 Changelog
 #########
 
-*latest*
---------
+
+v1.10.3: Sphinx Gallery
+-----------------------
+
+**2019-11-11**
+
+- Move examples to an integrated Sphinx-Gallery, generated each time.
+- Move from conda-channel ``prisae`` to ``conda-forge``.
+- Automatic deploy for PyPi and conda-forge.
+
+
+v1.10.2: Always EMArray
+-----------------------
+
+**2019-11-06**
+
+- Simplified and improved ``empymod.utils.EMArray``. Now every returned array
+  from the main modelling routines ``bipole``, ``dipole``, ``loop``, and
+  ``analytical`` is an EMArray with ``.amp``- and ``.pha``-attributes.
+- Theme and documentation reworked, to be more streamlined with ``emg3d`` (for
+  easier long-term maintenance).
+- Travis now checks all the url's in the documentation, so there should be no
+  broken links down the road. (Check is allowed to fail, it is visual QC.)
+- Fixes to the ``setuptools_scm``-implementation (``MANIFEST.in``).
+- ``ROADMAP.rst`` moved to GitHub-Projects; ``MAINTENANCE.rst`` included in
+  manual.
+
+
+v1.10.1: setuptools_scm
+-----------------------
+
+**2019-10-22**
+
+- Typos from v1.10.0; update example in ``model.loop``.
+- Implement ``setuptools_scm`` for versioning (adds git hashes for
+  dev-versions).
+
+
+v1.10.0: Loop source and receiver
+---------------------------------
+
+**2019-10-15**
+
+- New modelling routine ``model.loop`` to model the electromagnetic frequency-
+  or time-domain field due to an arbitrary rotated, magnetic source consisting
+  of an electric loop, measured by arbitrary rotated, finite electric or
+  magnetic bipole receivers or arbitrary rotated magnetic receivers consisting
+  of electric loops.
+- Move copyright from «Dieter Werthmüller» to «The empymod Developers», to be
+  more inclusive and open the project for new contributors.
+
+
+v1.9.0 : Laplace
+----------------
+
+**2019-10-04**
+
+- Laplace-domain calculation: By providing a negative ``freq``-value, the
+  calculation is carried out in the real Laplace domain ``s = freq`` instead of
+  the complex frequency domain ``s = 2i*pi*freq``.
+- Improvements to filter design and handling:
+
+  - ``DigitalFilter`` now takes an argument (list of strings) for additional
+    coefficients to the default ``j0``, ``j1``, ``sin``, and ``cos``.
+  - ``fdesign`` can now be used with any name as attribute you want to describe
+    the transform pair (until now it had to be either ``j0``, ``j1``, ``j2``,
+    ``sin``, or ``cos``).
+  - The provided sine and cosine transform pairs in ``fdesign`` can now be
+    asked to return the inverse pair (time to frequency).
+
+- Other tiny improvements and bug fixes.
+
+
+v1.8.3 : Scooby
+---------------
+
+**2019-07-05**
+
+- Use ``scooby`` for ``Versions`` (printinfo), change name to ``Report``.
+- DOC: Correct return statement if ``mrec=True``.
+- Typos and correct links for new asv/bench.
+- Bump requirement to SciPy>=1.0.0, remove warning regarding memory leak in
+  SciPy 0.19.0.
+
+
+v1.8.2 : pts_per_dec for DLF are now floats
+-------------------------------------------
+
+**2019-04-26**
 
 - ``pts_per_dec`` are now floats, not integers, which gives more flexibility.
 - Bugfix: ``pts_per_dec`` for DLF was actually points per ``e``, not per
@@ -11,9 +98,24 @@ Changelog
   automatically detects if it can print html or not.
 - Maintenance: Update ``np.load`` in tests with ``allow_pickle=True`` for
   changes in numpy v1.16.3.
+- Lots of changes to accommodate ``emg3d`` within the ``empymod``-org:
 
-v1.8.1 - *2018-11-20*
----------------------
+  - Adjust website, move stuff from website into README.md.
+  - /empymod/example-notebooks -> /empymod/empymod-examples.
+  - /empymod/asv -> /empymod/empymod-asv (and therefore now available at
+    `empymod.github.io/empymod-asv <https://empymod.github.io/empymod-asv>`_).
+  - /empymod/bench -> /empymod/empymod-bench.
+
+- Move manual from ``empymod/__init__.py`` to the ``docs/manual.rst``, and the
+  references to its own file. Change reference style.
+- Move credits for initial funding from the license-section of the manual to
+  CREDITS.rst, where it belongs.
+
+
+v1.8.1 : Version of Filter-article and CSEM-book
+------------------------------------------------
+
+**2018-11-20**
 
 - Many little improvements in the documentation.
 - Some code improvements through the use of codacy.
@@ -23,8 +125,10 @@ v1.8.1 - *2018-11-20*
   <https://github.com/empymod/csem-ziolkowski-and-slob>`_.
 
 
-v1.8.0 - *2018-10-26*
----------------------
+v1.8.0 : Hook for Cole-Cole IP and similar
+------------------------------------------
+
+**2018-10-26**
 
 - ``model.bipole``, ``model.dipole``, and ``model.analytical`` have now a hook
   which users can exploit to insert their own calculation of ``etaH``,
@@ -55,8 +159,10 @@ for the user-facing routines in ``model``:
   Move there in version 2.0.
 
 
-v1.7.3 - *2018-07-16*
----------------------
+v1.7.3 : Speed improvements following benchmarks
+------------------------------------------------
+
+**2018-07-16**
 
 - Small improvements related to speed as a result of the benchmarks introduced
   in v1.7.2:
@@ -76,8 +182,10 @@ v1.7.3 - *2018-07-16*
     ``factAng``; ``log10``/``log``; re-arranging).
 
 
-v1.7.2 - *2018-07-07*
----------------------
+v1.7.2 : Benchmarked with asv
+-----------------------------
+
+**2018-07-07**
 
 - Benchmarks: ``empymod`` has now a benchmark suite, see `empymod/asv
   <https://github.com/empymod/asv>`_.
@@ -93,8 +201,10 @@ v1.7.2 - *2018-07-07*
     and ``transform.qwe``.
 
 
-v1.7.1 - *2018-06-19*
----------------------
+v1.7.1 : Load/save filters in plain text
+----------------------------------------
+
+**2018-06-19**
 
 - New routines in ``empymod.filters.DigitalFilter``: Filters can now be saved
   to or loaded from pure ascii-files.
@@ -123,8 +233,10 @@ v1.7.1 - *2018-06-19*
 - Version of re-submission of the DLF article to geophysics.
 
 
-v1.7.0 - *2018-05-23*
----------------------
+v1.7.0 : Move empyscripts into empymod.scripts
+----------------------------------------------
+
+**2018-05-23**
 
 Merge ``empyscripts`` into ``empymod`` under ``empymod.scripts``.
 
@@ -146,8 +258,10 @@ Merge ``empyscripts`` into ``empymod`` under ``empymod.scripts``.
   ``empymod`` directly.
 
 
-v1.6.2 - *2018-05-21*
----------------------
+v1.6.2 : Speed improvements for QUAD/QWE
+----------------------------------------
+
+**2018-05-21**
 
 These changes should make calculations using ``QWE`` and ``QUAD`` for the
 Hankel transform for cases which do not require all kernels faster; sometimes
@@ -179,8 +293,10 @@ including for ``QWE`` and ``QUAD`` what was included for ``DLF`` in version
   - Simplify ``angle_factor``
 
 
-v1.6.1 - *2018-05-05*
----------------------
+v1.6.1 : Primary/secondary field
+--------------------------------
+
+**2018-05-05**
 
 Secondary field calculation.
 
@@ -198,8 +314,10 @@ Secondary field calculation.
   [`empymod#16 <https://github.com/empymod/empymod/issues/16>`_].
 
 
-v1.6.0 - *2018-05-01*
----------------------
+v1.6.0 : More DLF improvements
+------------------------------
+
+**2018-05-01**
 
 This release is not completely backwards compatible for the main modelling
 routines in ``empymod.model``, but almost. Read below to see which functions
@@ -247,8 +365,10 @@ are affected.
 - Bugfix in ``model.wavenumber`` for ``ab=[36, 63]`` (zeroes).
 
 
-v1.5.2 - *2018-04-25*
+v1.5.2 : Improved DLF
 ---------------------
+
+**2018-04-25**
 
 - DLF improvements:
 
@@ -264,8 +384,10 @@ v1.5.2 - *2018-04-25*
     ``pts_per_dec`` can now be shorter then the corresponding filter.
 
 
-v1.5.1 - *2018-02-24*
----------------------
+v1.5.1 : Improved docs
+----------------------
+
+**2018-02-24**
 
 - Documentation:
 
@@ -287,8 +409,10 @@ v1.5.1 - *2018-02-24*
     compatibility.
 
 
-v1.5.0 - *2018-01-02*
----------------------
+v1.5.0 : Hankel filter wer_201_2018
+-----------------------------------
+
+**2018-01-02**
 
 - Minimum parameter values can now be set and verified with
   ``utils.set_minimum`` and ``utils.get_minimum``.
@@ -304,8 +428,10 @@ v1.5.0 - *2018-01-02*
 - Version of manuscript submission to geophysics for the DLF article.
 
 
-v1.4.4 - *2017-09-18*
----------------------
+v1.4.4 : TE/TM split
+--------------------
+
+**2017-09-18**
 
 [This was meant to be 1.4.3, but due to a setup/pypi/anaconda-issue I had to
 push it to 1.4.4; so there isn't really a version 1.4.3.]
@@ -323,16 +449,20 @@ push it to 1.4.4; so there isn't really a version 1.4.3.]
 - Bug fixes
 
 
-v1.4.2 - *2017-06-04*
----------------------
+v1.4.2 : Final submission version of Geophysics paper
+-----------------------------------------------------
+
+**2017-06-04**
 
 - Bugfix: Fixed squeeze in ``model.analytical`` with ``solution='dsplit'``.
 
 - Version of final submission of manuscript to Geophysics.
 
 
-v1.4.1 - *2017-05-30*
----------------------
+v1.4.1 : Own organisation github.com/empymod
+--------------------------------------------
+
+**2017-05-30**
 
 [This was meant to be 1.4.0, but due to a setup/pypi/anaconda-issue I had to
 push it to 1.4.1; so there isn't really a version 1.4.0.]
@@ -366,8 +496,10 @@ push it to 1.4.1; so there isn't really a version 1.4.0.]
     only fullspace solution (all for the diffusive approximation).
 
 
-v1.3.0 - *2017-03-30*
----------------------
+v1.3.0 : New transforms QUAD (Hankel) and FFT (Fourier)
+-------------------------------------------------------
+
+**2017-03-30**
 
 - Add additional transforms and improve QWE:
 
@@ -397,8 +529,10 @@ v1.3.0 - *2017-03-30*
 - Bug fixes and documentation improvements
 
 
-v1.2.1 - *2017-03-11*
----------------------
+v1.2.1 : Installable via pip and conda
+--------------------------------------
+
+**2017-03-11**
 
 - Change default filter from ``key_401_2009`` to ``key_201_2009`` (because of
   warning regarding 401 pt filter in source code of ``DIPOLE1D``.)
@@ -408,8 +542,10 @@ v1.2.1 - *2017-03-11*
 - Bug fixes
 
 
-v1.2.0 - *2017-02-02*
----------------------
+v1.2.0 : Bipole
+---------------
+
+**2017-02-02**
 
 - New routine:
 
@@ -443,8 +579,10 @@ v1.2.0 - *2017-02-02*
 - Bug fixes
 
 
-v1.1.0 - *2016-12-22*
----------------------
+v1.1.0 : Include source bipole
+------------------------------
+
+**2016-12-22**
 
 - New routines:
 
@@ -468,7 +606,9 @@ v1.1.0 - *2016-12-22*
 - Bug fixes
 
 
-v1.0.0 - *2016-11-29*
----------------------
+v1.0.0 : Initial release
+------------------------
+
+**2016-11-29**
 
 - Initial release; state of manuscript submission to geophysics.
